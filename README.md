@@ -170,62 +170,107 @@ Add the following content (adjust paths if your username or project location dif
 
 ```bash
 #!/bin/bash
-# Exit on any error
-set -e
+# Don't exit on error immediately, we want to log errors
+set +e
 
 # Log file for debugging
 LOG_FILE="/home/pi/grocy_scanner/intake.log"
 
 # Function to log messages
 log() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
 }
 
-log "Starting Intake application"
+# Redirect stderr to log file as well
+exec 2>> "$LOG_FILE"
+
+log "=== Starting Intake application ==="
+
+# Kill any existing X server on display :0
+log "Checking for existing X server"
+if pgrep -f "X.*:0" > /dev/null; then
+    log "Killing existing X server"
+    pkill -f "X.*:0" || true
+    sleep 2
+fi
 
 # Start X server on display :0
-log "Starting X server"
-X -nolisten tcp :0 > /dev/null 2>&1 &
+log "Starting X server on display :0"
+X -nolisten tcp :0 >> "$LOG_FILE" 2>&1 &
 X_PID=$!
 
 # Wait for X server to be ready
+log "Waiting for X server to initialize..."
 sleep 5
 
-# Check if X server is running
-if ! ps -p $X_PID > /dev/null; then
-    log "ERROR: X server failed to start"
+# Check if X server process is still running
+if ! ps -p $X_PID > /dev/null 2>&1; then
+    log "ERROR: X server process died immediately after start"
+    log "X server output:"
+    tail -20 "$LOG_FILE" >> "$LOG_FILE"
     exit 1
 fi
 
-log "X server started with PID: $X_PID"
+# Verify X server is actually responding
+log "Verifying X server is responding"
+if ! DISPLAY=:0 xdpyinfo > /dev/null 2>&1; then
+    log "ERROR: X server is not responding on display :0"
+    log "X server PID: $X_PID"
+    ps aux | grep X >> "$LOG_FILE" 2>&1
+    exit 1
+fi
+
+log "X server started successfully with PID: $X_PID"
 
 # Set DISPLAY variable
 export DISPLAY=:0
+log "DISPLAY set to: $DISPLAY"
 
 # Navigate to project directory
+log "Changing to project directory"
 cd /home/pi/grocy_scanner || {
     log "ERROR: Failed to change directory to /home/pi/grocy_scanner"
     exit 1
 }
+log "Current directory: $(pwd)"
 
 # Check if venv exists
 if [ ! -f "venv/bin/python" ]; then
     log "ERROR: Virtual environment not found at venv/bin/python"
+    log "Directory contents:"
+    ls -la >> "$LOG_FILE" 2>&1
     exit 1
 fi
+log "Virtual environment found"
 
 # Activate virtual environment and start the application
-log "Activating virtual environment and starting application"
-source venv/bin/activate
-
-# Verify Python can import tkinter
-python -c "import tkinter" || {
-    log "ERROR: Tkinter not available"
+log "Activating virtual environment"
+source venv/bin/activate || {
+    log "ERROR: Failed to activate virtual environment"
     exit 1
 }
 
+# Verify Python path
+log "Python path: $(which python)"
+log "Python version: $(python --version)"
+
+# Verify Python can import tkinter
+log "Testing tkinter import"
+if ! python -c "import tkinter" >> "$LOG_FILE" 2>&1; then
+    log "ERROR: Tkinter not available"
+    log "Testing with python3-tk:"
+    python3 -c "import tkinter" >> "$LOG_FILE" 2>&1 || log "python3-tk also failed"
+    exit 1
+fi
+log "Tkinter import successful"
+
+# Verify other required packages
+log "Testing required packages"
+python -c "import requests" >> "$LOG_FILE" 2>&1 || log "WARNING: requests not found"
+python -c "from PIL import Image" >> "$LOG_FILE" 2>&1 || log "WARNING: Pillow not found"
+
 log "Starting main.py"
-exec python main.py
+exec python main.py >> "$LOG_FILE" 2>&1
 ```
 
 Make the script executable and set proper ownership:
@@ -328,55 +373,6 @@ If your scanner doesn't work automatically, you may need to:
 
 ## Troubleshooting
 
-### Quick Debugging Guide
-
-If your service is failing to start, follow these steps in order:
-
-**Step 1: Check the logs**
-```bash
-# View recent systemd logs
-sudo journalctl -u intake.service -n 100 --no-pager
-
-# Check application log file (if it exists)
-cat /home/pi/grocy_scanner/intake.log 2>/dev/null || echo "No log file yet"
-```
-
-**Step 2: Verify the script exists and is executable**
-```bash
-ls -la /usr/local/bin/start-intake.sh
-# Should show: -rwxr-xr-x (executable)
-```
-
-**Step 3: Test the script manually**
-```bash
-# Stop the service first
-sudo systemctl stop intake.service
-
-# Test as pi user
-sudo -u pi /usr/local/bin/start-intake.sh
-```
-
-**Step 4: Check if X server can start**
-```bash
-# Kill any existing X processes
-sudo pkill X
-
-# Test X server manually
-sudo -u pi X -nolisten tcp :0 &
-sleep 3
-sudo -u pi DISPLAY=:0 xdpyinfo
-# Should show X server info, not errors
-```
-
-**Step 5: Verify virtual environment**
-```bash
-cd /home/pi/grocy_scanner
-source venv/bin/activate
-python -c "import tkinter; print('Tkinter OK')"
-python -c "import requests; print('Requests OK')"
-python -c "from PIL import Image; print('Pillow OK')"
-```
-
 ### Service not starting
 
 1. **Check service status:**
@@ -389,10 +385,16 @@ python -c "from PIL import Image; print('Pillow OK')"
    sudo journalctl -u intake.service -n 100 --no-pager
    ```
 
-3. **Check application log file:**
+3. **Check application log file (most important!):**
    ```bash
+   # View the log file
    cat /home/pi/grocy_scanner/intake.log
+   
+   # Or follow it in real-time
+   tail -f /home/pi/grocy_scanner/intake.log
    ```
+   
+   **This log file will show you exactly where the script is failing.**
 
 4. **Verify paths are correct:**
    ```bash
