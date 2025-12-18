@@ -47,19 +47,19 @@ class PortalTheme(Theme):
     
     # Fonts - Rajdhani
     FONT_FAMILY = 'Rajdhani'  # Portal-style font
-    FONT_TITLE_SIZE = 42
+    FONT_TITLE_SIZE = 36
     FONT_TITLE_WEIGHT = 'bold'
     
-    FONT_BUTTON_SIZE = 22
+    FONT_BUTTON_SIZE = 20
     FONT_BUTTON_WEIGHT = 'semibold'
     
-    FONT_STATUS_SIZE = 20
+    FONT_STATUS_SIZE = 18
     FONT_STATUS_WEIGHT = 'medium'
     
-    FONT_STATUS_LARGE_SIZE = 28
+    FONT_STATUS_LARGE_SIZE = 24
     FONT_STATUS_LARGE_WEIGHT = 'bold'
     
-    FONT_INFO_SIZE = 18
+    FONT_INFO_SIZE = 16
     FONT_INFO_WEIGHT = 'regular'
     
     FONT_CONFIG_SIZE = 16
@@ -68,20 +68,20 @@ class PortalTheme(Theme):
     FONT_CONFIG_BUTTON_SIZE = 16
     FONT_CONFIG_BUTTON_WEIGHT = 'semibold'
     
-    # Sizes and spacing - more modern, tighter
-    BUTTON_WIDTH = 18
-    BUTTON_HEIGHT = 3
-    BUTTON_BORDER_WIDTH = 3
-    BUTTON_BORDER_ACTIVE_WIDTH = 5  # Thicker border when active
+    # Sizes and spacing - compact for small displays (1024x600)
+    BUTTON_WIDTH = 16
+    BUTTON_HEIGHT = 2
+    BUTTON_BORDER_WIDTH = 2
+    BUTTON_BORDER_ACTIVE_WIDTH = 3  # Thicker border when active
     
-    PADDING_X = 30
-    PADDING_Y = 30
-    TITLE_PADDING_BOTTOM = 40
-    BUTTON_PADDING = 15
-    STATUS_PADDING = 25
+    PADDING_X = 20
+    PADDING_Y = 15
+    TITLE_PADDING_BOTTOM = 20
+    BUTTON_PADDING = 10
+    STATUS_PADDING = 10
     
-    # Image settings
-    PRODUCT_IMAGE_SIZE = (220, 220)
+    # Image settings - smaller for compact display (1024x600)
+    PRODUCT_IMAGE_SIZE = (120, 120)
     
     # Window settings
     FULLSCREEN = True

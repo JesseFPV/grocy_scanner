@@ -255,7 +255,6 @@ class GrocyScannerUI:
                 self.search_frame,
                 image=search_icon,
                 bg=Theme.BUTTON_ADD,
-                cursor='hand2'
             )
             search_button.image = search_icon  # Keep reference
         else:
@@ -266,7 +265,6 @@ class GrocyScannerUI:
                 font=Theme.get_config_font(),
                 bg=Theme.BUTTON_ADD,
                 fg='white',
-                cursor='hand2'
             )
         search_button.pack(side=tk.LEFT, padx=5)
         search_button.bind('<Button-1>', lambda e: self._perform_search())
@@ -276,7 +274,7 @@ class GrocyScannerUI:
         
         # Title with Portal-style accent line
         title_container = tk.Frame(main_frame, bg=Theme.BACKGROUND)
-        title_container.pack(pady=(0, Theme.TITLE_PADDING_BOTTOM))
+        title_container.pack(pady=(0, Theme.TITLE_PADDING_BOTTOM // 2))
         
         # Accent line above title (Portal style)
         accent_line = tk.Frame(title_container, bg=getattr(Theme, 'ACTIVE_INDICATOR_COLOR', Theme.STATUS_SUCCESS), height=3)
@@ -293,7 +291,7 @@ class GrocyScannerUI:
         
         # Action buttons frame
         buttons_frame = tk.Frame(main_frame, bg=Theme.BACKGROUND)
-        buttons_frame.pack(pady=Theme.BUTTON_PADDING)
+        buttons_frame.pack(pady=(Theme.BUTTON_PADDING, Theme.BUTTON_PADDING // 2))
         
         # Button containers for active indicator
         self.add_button_frame = tk.Frame(buttons_frame, bg=Theme.BACKGROUND, width=Theme.BUTTON_WIDTH*10, height=Theme.BUTTON_HEIGHT*20)
@@ -314,14 +312,13 @@ class GrocyScannerUI:
         self.add_indicator.pack(fill=tk.X, pady=(0, 2))
         self.add_indicator.pack_forget()  # Hide initially
         
-        add_bg_frame = tk.Frame(self.add_button_frame, bg=Theme.BUTTON_ADD, cursor='hand2')
+        add_bg_frame = tk.Frame(self.add_button_frame, bg=Theme.BUTTON_ADD)
         self.add_button = tk.Label(
             add_bg_frame,
             text="➕ ADD TO STOCK",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_ADD,
             fg='white',
-            cursor='hand2'
         )
         self.add_button.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         add_bg_frame.pack(fill=tk.BOTH, expand=True)
@@ -343,14 +340,13 @@ class GrocyScannerUI:
         self.open_indicator.pack(fill=tk.X, pady=(0, 2))
         self.open_indicator.pack_forget()  # Hide initially
         
-        open_bg_frame = tk.Frame(self.open_button_frame, bg=Theme.BUTTON_OPEN, cursor='hand2')
+        open_bg_frame = tk.Frame(self.open_button_frame, bg=Theme.BUTTON_OPEN)
         self.open_button = tk.Label(
             open_bg_frame,
             text="📦 OPEN PRODUCT",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_OPEN,
             fg='white',
-            cursor='hand2'
         )
         self.open_button.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         open_bg_frame.pack(fill=tk.BOTH, expand=True)
@@ -372,14 +368,13 @@ class GrocyScannerUI:
         self.deduct_indicator.pack(fill=tk.X, pady=(0, 2))
         self.deduct_indicator.pack_forget()  # Hide initially
         
-        deduct_bg_frame = tk.Frame(self.deduct_button_frame, bg=Theme.BUTTON_DEDUCT, cursor='hand2')
+        deduct_bg_frame = tk.Frame(self.deduct_button_frame, bg=Theme.BUTTON_DEDUCT)
         self.deduct_button = tk.Label(
             deduct_bg_frame,
             text="➖ DEDUCT STOCK",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_DEDUCT,
             fg='white',
-            cursor='hand2'
         )
         self.deduct_button.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
         deduct_bg_frame.pack(fill=tk.BOTH, expand=True)
@@ -409,26 +404,32 @@ class GrocyScannerUI:
             fg=Theme.TEXT_SECONDARY,
             wraplength=Theme.TEXT_WRAP_LENGTH
         )
-        self.status_label.pack(pady=Theme.STATUS_PADDING)
+        self.status_label.pack(pady=(Theme.STATUS_PADDING, 5))
         
-        # Product image label - ensure it's visible
+        # Container for image and info side by side for compact layout
+        product_info_container = tk.Frame(self.status_frame, bg=Theme.BACKGROUND)
+        product_info_container.pack(pady=5)
+        
+        # Product image label - smaller and on the left
         self.image_label = tk.Label(
-            self.status_frame,
+            product_info_container,
             bg=Theme.BACKGROUND,
             text=""  # Empty text initially
         )
-        self.image_label.pack(pady=10)
+        self.image_label.pack(side=tk.LEFT, padx=(0, 15))
         
-        # Product info label
+        # Product info label - on the right of image
         self.info_label = tk.Label(
-            self.status_frame,
+            product_info_container,
             text="",
             font=Theme.get_info_font(),
             bg=Theme.BACKGROUND,
             fg=Theme.TEXT_PRIMARY,
-            wraplength=Theme.TEXT_WRAP_LENGTH
+            wraplength=400,  # Reduced wrap length for compact display
+            justify=tk.LEFT,
+            anchor='w'
         )
-        self.info_label.pack(pady=10)
+        self.info_label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
         # Bottom buttons container (search and config on same line)
         bottom_buttons_frame = tk.Frame(main_frame, bg=Theme.BACKGROUND)
@@ -438,7 +439,7 @@ class GrocyScannerUI:
         search_icon_frame = tk.Frame(bottom_buttons_frame, bg=Theme.BACKGROUND)
         search_icon_frame.pack(side=tk.LEFT, padx=10)
         
-        search_icon_bg = tk.Frame(search_icon_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
+        search_icon_bg = tk.Frame(search_icon_frame, bg=Theme.BUTTON_CONFIG)
         icon_loader = get_icon_loader()
         search_icon_img = icon_loader.load_icon('search', size=(24, 24), color='white')
         if search_icon_img:
@@ -446,7 +447,6 @@ class GrocyScannerUI:
                 search_icon_bg,
                 image=search_icon_img,
                 bg=Theme.BUTTON_CONFIG,
-                cursor='hand2'
             )
             search_icon.image = search_icon_img  # Keep reference
         else:
@@ -457,7 +457,6 @@ class GrocyScannerUI:
                 font=Theme.get_config_font(),
                 bg=Theme.BUTTON_CONFIG,
                 fg='white',
-                cursor='hand2'
             )
         search_icon.pack(padx=8, pady=5)
         search_icon_bg.pack()
@@ -482,7 +481,7 @@ class GrocyScannerUI:
         config_button_frame = tk.Frame(bottom_buttons_frame, bg=Theme.BACKGROUND)
         config_button_frame.pack(side=tk.RIGHT, padx=10)
         
-        config_bg_frame = tk.Frame(config_button_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
+        config_bg_frame = tk.Frame(config_button_frame, bg=Theme.BUTTON_CONFIG)
         icon_loader = get_icon_loader()
         settings_icon_img = icon_loader.load_icon('settings', size=(24, 24), color='white')
         if settings_icon_img:
@@ -490,7 +489,6 @@ class GrocyScannerUI:
                 config_bg_frame,
                 image=settings_icon_img,
                 bg=Theme.BUTTON_CONFIG,
-                cursor='hand2'
             )
             config_button.image = settings_icon_img  # Keep reference
         else:
@@ -501,7 +499,6 @@ class GrocyScannerUI:
                 font=Theme.get_config_font(),
                 bg=Theme.BUTTON_CONFIG,
                 fg='white',
-                cursor='hand2'
             )
         config_button.pack(padx=8, pady=5)
         config_bg_frame.pack()
@@ -604,7 +601,7 @@ class GrocyScannerUI:
         header_frame.pack(fill=tk.X, pady=20, padx=20)
         
         # Back button
-        back_frame = tk.Frame(header_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
+        back_frame = tk.Frame(header_frame, bg=Theme.BUTTON_CONFIG)
         icon_loader = get_icon_loader()
         back_icon_img = icon_loader.load_icon('arrow_left', size=(20, 20), color='white')
         if back_icon_img:
@@ -612,7 +609,6 @@ class GrocyScannerUI:
                 back_frame,
                 image=back_icon_img,
                 bg=Theme.BUTTON_CONFIG,
-                cursor='hand2'
             )
             back_icon_label.image = back_icon_img  # Keep reference
             back_icon_label.pack(side=tk.LEFT, padx=(10, 5), pady=8)
@@ -622,7 +618,6 @@ class GrocyScannerUI:
             font=Theme.get_config_font(),
             bg=Theme.BUTTON_CONFIG,
             fg='white',
-            cursor='hand2'
         )
         back_label.pack(side=tk.LEFT, padx=(0, 10), pady=8)
         back_frame.pack(side=tk.LEFT)
@@ -692,7 +687,6 @@ class GrocyScannerUI:
                 host_entry_frame,
                 image=keyboard_icon_img,
                 bg=Theme.BUTTON_ADD,
-                cursor='hand2'
             )
             host_keyboard_btn.image = keyboard_icon_img  # Keep reference
         else:
@@ -702,7 +696,6 @@ class GrocyScannerUI:
                 font=Theme.get_config_font(),
                 bg=Theme.BUTTON_ADD,
                 fg='white',
-                cursor='hand2'
             )
         host_keyboard_btn.pack(side=tk.LEFT, padx=10)
         host_keyboard_btn.bind('<Button-1>', lambda e: config_keyboard.show(host_entry))
@@ -740,7 +733,6 @@ class GrocyScannerUI:
                 api_key_entry_frame,
                 image=keyboard_icon_img,
                 bg=Theme.BUTTON_ADD,
-                cursor='hand2'
             )
             api_keyboard_btn.image = keyboard_icon_img  # Keep reference
         else:
@@ -750,7 +742,6 @@ class GrocyScannerUI:
                 font=Theme.get_config_font(),
                 bg=Theme.BUTTON_ADD,
                 fg='white',
-                cursor='hand2'
             )
         api_keyboard_btn.pack(side=tk.LEFT, padx=10)
         api_keyboard_btn.bind('<Button-1>', lambda e: config_keyboard.show(api_key_entry))
@@ -788,14 +779,13 @@ class GrocyScannerUI:
         save_button_frame = tk.Frame(content_frame, bg=Theme.BACKGROUND)
         save_button_frame.pack(pady=20)
         
-        save_bg_frame = tk.Frame(save_button_frame, bg=Theme.BUTTON_SAVE, cursor='hand2')
+        save_bg_frame = tk.Frame(save_button_frame, bg=Theme.BUTTON_SAVE)
         save_button = tk.Label(
             save_bg_frame,
             text="SAVE CONFIGURATION",
             font=Theme.get_config_button_font(),
             bg=Theme.BUTTON_SAVE,
             fg='white',
-            cursor='hand2'
         )
         save_button.pack(fill=tk.BOTH, expand=True, padx=30, pady=15)
         save_bg_frame.pack()
@@ -1308,7 +1298,7 @@ class GrocyScannerUI:
         header_frame.pack(fill=tk.X, pady=10, padx=10)
         
         # Back button
-        back_frame = tk.Frame(header_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
+        back_frame = tk.Frame(header_frame, bg=Theme.BUTTON_CONFIG)
         icon_loader = get_icon_loader()
         back_icon_img = icon_loader.load_icon('arrow_left', size=(18, 18), color='white')
         if back_icon_img:
@@ -1316,7 +1306,6 @@ class GrocyScannerUI:
                 back_frame,
                 image=back_icon_img,
                 bg=Theme.BUTTON_CONFIG,
-                cursor='hand2'
             )
             back_icon_label.image = back_icon_img  # Keep reference
             back_icon_label.pack(side=tk.LEFT, padx=(8, 3), pady=5)
@@ -1326,7 +1315,6 @@ class GrocyScannerUI:
             font=Theme.get_config_font(),
             bg=Theme.BUTTON_CONFIG,
             fg='white',
-            cursor='hand2'
         )
         back_label.pack(side=tk.LEFT, padx=(0, 5), pady=5)
         back_frame.pack(side=tk.LEFT)
@@ -1372,14 +1360,13 @@ class GrocyScannerUI:
         self.search_entry.bind('<Return>', lambda e: self._perform_search())
         
         # Search button
-        search_button_frame = tk.Frame(search_input_frame, bg=Theme.BUTTON_ADD, cursor='hand2')
+        search_button_frame = tk.Frame(search_input_frame, bg=Theme.BUTTON_ADD)
         search_button = tk.Label(
             search_button_frame,
             text="🔍 SEARCH",
             font=Theme.get_config_font(),
             bg=Theme.BUTTON_ADD,
             fg='white',
-            cursor='hand2'
         )
         search_button.pack(padx=10, pady=5)
         search_button_frame.pack(side=tk.LEFT, padx=5)
@@ -1399,14 +1386,13 @@ class GrocyScannerUI:
             self.keyboard = OnScreenKeyboard(self.search_page_frame, target_entry=self.search_entry, callback=self._perform_search)
         
         # Keyboard toggle button
-        keyboard_frame = tk.Frame(search_input_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
+        keyboard_frame = tk.Frame(search_input_frame, bg=Theme.BUTTON_CONFIG)
         keyboard_button = tk.Label(
             keyboard_frame,
             text="⌨",
             font=('Arial', 16),
             bg=Theme.BUTTON_CONFIG,
             fg='white',
-            cursor='hand2'
         )
         keyboard_button.pack(padx=8, pady=5)
         keyboard_frame.pack(side=tk.LEFT, padx=5)
@@ -1423,14 +1409,13 @@ class GrocyScannerUI:
         
         self.hide_out_of_stock = False
         self.selected_product_group = None
-        toggle_frame = tk.Frame(filter_left_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
+        toggle_frame = tk.Frame(filter_left_frame, bg=Theme.BUTTON_CONFIG)
         toggle_label = tk.Label(
             toggle_frame,
             text="🔲 Hide out-of-stock",
             font=Theme.get_config_font(),
             bg=Theme.BUTTON_CONFIG,
             fg='white',
-            cursor='hand2'
         )
         toggle_label.pack(padx=10, pady=5)
         toggle_frame.pack(side=tk.LEFT, padx=5)
@@ -1601,14 +1586,13 @@ class GrocyScannerUI:
             group_name = group.get('name', 'Unknown')
             
             # Create filter button
-            group_frame = tk.Frame(self.groups_container, bg=Theme.BUTTON_CONFIG, cursor='hand2')
+            group_frame = tk.Frame(self.groups_container, bg=Theme.BUTTON_CONFIG)
             group_label = tk.Label(
                 group_frame,
                 text=group_name,
                 font=Theme.get_config_font(),
                 bg=Theme.BUTTON_CONFIG,
                 fg='white',
-                cursor='hand2'
             )
             group_label.pack(padx=8, pady=3)
             group_frame.pack(side=tk.LEFT, padx=3)
@@ -1736,7 +1720,7 @@ class GrocyScannerUI:
             item_frame = tk.Frame(
                 self.search_results_frame, 
                 bg=Theme.BUTTON_CONFIG, 
-                cursor='hand2',
+,
                 relief=tk.RAISED,
                 borderwidth=2
             )
@@ -1766,7 +1750,7 @@ class GrocyScannerUI:
                 font=Theme.get_info_font(),
                 bg=Theme.BUTTON_CONFIG,
                 fg='white',
-                cursor='hand2',
+,
                 wraplength=150,
                 justify=tk.CENTER
             )
@@ -1779,7 +1763,6 @@ class GrocyScannerUI:
                 font=Theme.get_config_font(),
                 bg=Theme.BUTTON_CONFIG,
                 fg='white',
-                cursor='hand2'
             )
             stock_label.pack(pady=2)
             
@@ -1974,7 +1957,7 @@ class GrocyScannerUI:
         header_frame.pack(fill=tk.X, pady=10, padx=10)
         
         # Back button
-        back_frame = tk.Frame(header_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
+        back_frame = tk.Frame(header_frame, bg=Theme.BUTTON_CONFIG)
         icon_loader = get_icon_loader()
         back_icon_img = icon_loader.load_icon('arrow_left', size=(18, 18), color='white')
         if back_icon_img:
@@ -1982,7 +1965,6 @@ class GrocyScannerUI:
                 back_frame,
                 image=back_icon_img,
                 bg=Theme.BUTTON_CONFIG,
-                cursor='hand2'
             )
             back_icon_label.image = back_icon_img  # Keep reference
             back_icon_label.pack(side=tk.LEFT, padx=(8, 3), pady=5)
@@ -1992,7 +1974,6 @@ class GrocyScannerUI:
             font=Theme.get_config_font(),
             bg=Theme.BUTTON_CONFIG,
             fg='white',
-            cursor='hand2'
         )
         back_label.pack(side=tk.LEFT, padx=(0, 5), pady=5)
         back_frame.pack(side=tk.LEFT)
@@ -2078,14 +2059,13 @@ class GrocyScannerUI:
         actions_frame.pack(pady=30)
         
         # Add button
-        add_frame = tk.Frame(actions_frame, bg=Theme.BUTTON_ADD, cursor='hand2')
+        add_frame = tk.Frame(actions_frame, bg=Theme.BUTTON_ADD)
         add_label = tk.Label(
             add_frame,
             text="➕ ADD",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_ADD,
             fg='white',
-            cursor='hand2'
         )
         add_label.pack(padx=15, pady=12)
         add_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
@@ -2100,14 +2080,13 @@ class GrocyScannerUI:
         add_frame.bind('<Leave>', add_leave)
         
         # Open button
-        open_frame = tk.Frame(actions_frame, bg=Theme.BUTTON_OPEN, cursor='hand2')
+        open_frame = tk.Frame(actions_frame, bg=Theme.BUTTON_OPEN)
         open_label = tk.Label(
             open_frame,
             text="📦 OPEN",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_OPEN,
             fg='white',
-            cursor='hand2'
         )
         open_label.pack(padx=15, pady=12)
         open_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
@@ -2122,14 +2101,13 @@ class GrocyScannerUI:
         open_frame.bind('<Leave>', open_leave)
         
         # Deduct button
-        deduct_frame = tk.Frame(actions_frame, bg=Theme.BUTTON_DEDUCT, cursor='hand2')
+        deduct_frame = tk.Frame(actions_frame, bg=Theme.BUTTON_DEDUCT)
         deduct_label = tk.Label(
             deduct_frame,
             text="➖ DEDUCT",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_DEDUCT,
             fg='white',
-            cursor='hand2'
         )
         deduct_label.pack(padx=15, pady=12)
         deduct_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)

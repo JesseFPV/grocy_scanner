@@ -56,7 +56,7 @@ class OnScreenKeyboard:
             
             for key in row:
                 # Use Frame-based approach for macOS compatibility (like other buttons)
-                key_frame = tk.Frame(row_frame, bg=KEY_BG, cursor='hand2')
+                key_frame = tk.Frame(row_frame, bg=KEY_BG)
                 
                 if key == 'Space':
                     key_label = tk.Label(
@@ -65,7 +65,7 @@ class OnScreenKeyboard:
                         bg=KEY_BG,
                         fg=KEY_FG,
                         font=Theme.get_config_font(),
-                        cursor='hand2',
+,
                         width=15,
                         height=2
                     )
@@ -79,7 +79,7 @@ class OnScreenKeyboard:
                         bg=KEY_BG,
                         fg=KEY_FG,
                         font=Theme.get_config_font(),
-                        cursor='hand2',
+,
                         width=10,
                         height=2
                     )
@@ -95,7 +95,6 @@ class OnScreenKeyboard:
                             image=shift_icon,
                             bg=KEY_BG,
                             fg=KEY_FG,
-                            cursor='hand2'
                         )
                         key_label.image = shift_icon  # Keep reference
                     else:
@@ -105,7 +104,7 @@ class OnScreenKeyboard:
                             bg=KEY_BG,
                             fg=KEY_FG,
                             font=Theme.get_config_font(),
-                            cursor='hand2',
+,
                             width=5,
                             height=2
                         )
@@ -121,7 +120,6 @@ class OnScreenKeyboard:
                             image=backspace_icon,
                             bg=KEY_BG,
                             fg=KEY_FG,
-                            cursor='hand2'
                         )
                         key_label.image = backspace_icon  # Keep reference
                     else:
@@ -131,7 +129,7 @@ class OnScreenKeyboard:
                             bg=KEY_BG,
                             fg=KEY_FG,
                             font=Theme.get_config_font(),
-                            cursor='hand2',
+,
                             width=5,
                             height=2
                         )
@@ -150,7 +148,7 @@ class OnScreenKeyboard:
                         bg=KEY_BG,
                         fg=KEY_FG,
                         font=Theme.get_config_font(),
-                        cursor='hand2',
+,
                         width=4,
                         height=2
                     )
