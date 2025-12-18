@@ -170,25 +170,69 @@ Add the following content (adjust paths if your username or project location dif
 
 ```bash
 #!/bin/bash
+# Exit on any error
+set -e
+
+# Log file for debugging
+LOG_FILE="/home/pi/grocy_scanner/intake.log"
+
+# Function to log messages
+log() {
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+}
+
+log "Starting Intake application"
+
 # Start X server on display :0
-X -nolisten tcp :0 &
-sleep 3
+log "Starting X server"
+X -nolisten tcp :0 > /dev/null 2>&1 &
+X_PID=$!
 
 # Wait for X server to be ready
+sleep 5
+
+# Check if X server is running
+if ! ps -p $X_PID > /dev/null; then
+    log "ERROR: X server failed to start"
+    exit 1
+fi
+
+log "X server started with PID: $X_PID"
+
+# Set DISPLAY variable
 export DISPLAY=:0
 
 # Navigate to project directory
-cd /home/pi/grocy_scanner
+cd /home/pi/grocy_scanner || {
+    log "ERROR: Failed to change directory to /home/pi/grocy_scanner"
+    exit 1
+}
+
+# Check if venv exists
+if [ ! -f "venv/bin/python" ]; then
+    log "ERROR: Virtual environment not found at venv/bin/python"
+    exit 1
+fi
 
 # Activate virtual environment and start the application
+log "Activating virtual environment and starting application"
 source venv/bin/activate
-python main.py
+
+# Verify Python can import tkinter
+python -c "import tkinter" || {
+    log "ERROR: Tkinter not available"
+    exit 1
+}
+
+log "Starting main.py"
+exec python main.py
 ```
 
-Make the script executable:
+Make the script executable and set proper ownership:
 
 ```bash
 sudo chmod +x /usr/local/bin/start-intake.sh
+sudo chown pi:pi /usr/local/bin/start-intake.sh
 ```
 
 #### 8.2: Create Systemd Service
@@ -284,6 +328,55 @@ If your scanner doesn't work automatically, you may need to:
 
 ## Troubleshooting
 
+### Quick Debugging Guide
+
+If your service is failing to start, follow these steps in order:
+
+**Step 1: Check the logs**
+```bash
+# View recent systemd logs
+sudo journalctl -u intake.service -n 100 --no-pager
+
+# Check application log file (if it exists)
+cat /home/pi/grocy_scanner/intake.log 2>/dev/null || echo "No log file yet"
+```
+
+**Step 2: Verify the script exists and is executable**
+```bash
+ls -la /usr/local/bin/start-intake.sh
+# Should show: -rwxr-xr-x (executable)
+```
+
+**Step 3: Test the script manually**
+```bash
+# Stop the service first
+sudo systemctl stop intake.service
+
+# Test as pi user
+sudo -u pi /usr/local/bin/start-intake.sh
+```
+
+**Step 4: Check if X server can start**
+```bash
+# Kill any existing X processes
+sudo pkill X
+
+# Test X server manually
+sudo -u pi X -nolisten tcp :0 &
+sleep 3
+sudo -u pi DISPLAY=:0 xdpyinfo
+# Should show X server info, not errors
+```
+
+**Step 5: Verify virtual environment**
+```bash
+cd /home/pi/grocy_scanner
+source venv/bin/activate
+python -c "import tkinter; print('Tkinter OK')"
+python -c "import requests; print('Requests OK')"
+python -c "from PIL import Image; print('Pillow OK')"
+```
+
 ### Service not starting
 
 1. **Check service status:**
@@ -291,19 +384,73 @@ If your scanner doesn't work automatically, you may need to:
    sudo systemctl status intake.service
    ```
 
-2. **View logs for errors:**
+2. **View systemd logs for errors:**
    ```bash
-   sudo journalctl -u intake.service -n 50
+   sudo journalctl -u intake.service -n 100 --no-pager
    ```
 
-3. **Verify paths are correct:**
-   - Check that `/home/pi/grocy_scanner` exists
-   - Verify `venv` directory exists: `ls -la /home/pi/grocy_scanner/venv`
-   - Ensure script is executable: `ls -la /usr/local/bin/start-intake.sh`
+3. **Check application log file:**
+   ```bash
+   cat /home/pi/grocy_scanner/intake.log
+   ```
 
-4. **Test script manually:**
+4. **Verify paths are correct:**
+   ```bash
+   # Check project directory exists
+   ls -la /home/pi/grocy_scanner
+   
+   # Verify venv exists
+   ls -la /home/pi/grocy_scanner/venv/bin/python
+   
+   # Ensure script is executable
+   ls -la /usr/local/bin/start-intake.sh
+   ```
+
+5. **Test script manually (as pi user):**
    ```bash
    sudo -u pi /usr/local/bin/start-intake.sh
+   ```
+   
+   **Note:** This will block your terminal. Press Ctrl+C to stop it.
+
+6. **Test X server separately:**
+   ```bash
+   # As pi user, test X server
+   sudo -u pi X -nolisten tcp :0 &
+   sleep 3
+   sudo -u pi DISPLAY=:0 xdpyinfo
+   ```
+
+7. **Common issues and fixes:**
+   
+   **Issue: Permission denied**
+   ```bash
+   # Fix script permissions
+   sudo chmod +x /usr/local/bin/start-intake.sh
+   sudo chown pi:pi /usr/local/bin/start-intake.sh
+   ```
+   
+   **Issue: X server already running**
+   ```bash
+   # Kill existing X server
+   sudo pkill X
+   # Then restart service
+   sudo systemctl restart intake.service
+   ```
+   
+   **Issue: Virtual environment not found**
+   ```bash
+   # Recreate venv
+   cd /home/pi/grocy_scanner
+   python3 -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
+   
+   **Issue: Tkinter not available**
+   ```bash
+   # Reinstall python3-tk
+   sudo apt-get install --reinstall python3-tk
    ```
 
 ### Display issues
