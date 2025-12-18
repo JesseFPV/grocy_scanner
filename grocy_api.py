@@ -197,23 +197,31 @@ class GrocyAPI:
         """Get product information by ID."""
         return self._get(f"objects/products/{product_id}")
     
-    def search_products(self, search_term: str) -> list:
-        """Search for products by name."""
+    def search_products(self, search_term: str = None) -> list:
+        """Search for products by name. If no search_term provided, returns first 10 products."""
         try:
-            # Get all products and filter by name
+            # Get all products
             all_products = self._get("objects/products")
             if all_products and isinstance(all_products, list):
-                search_lower = search_term.lower()
-                # Filter products that match the search term
-                matches = [
-                    p for p in all_products
-                    if search_lower in p.get('name', '').lower()
-                ]
-                return matches[:10]  # Return top 10 matches
+                if search_term:
+                    # Filter products that match the search term
+                    search_lower = search_term.lower()
+                    matches = [
+                        p for p in all_products
+                        if search_lower in p.get('name', '').lower()
+                    ]
+                    return matches[:10]  # Return top 10 matches
+                else:
+                    # Return first 10 products if no search term
+                    return all_products[:10]
             return []
         except Exception as e:
             print(f"Search error: {e}")
             return []
+    
+    def get_recent_products(self, limit: int = 10) -> list:
+        """Get recent products (first N products)."""
+        return self.search_products()[:limit]
     
     def get_product_picture_url(self, product_id: int, picture_file_name: str) -> Optional[str]:
         """Get product picture URL."""

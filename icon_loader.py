@@ -51,6 +51,22 @@ class IconLoader:
                     return img.resize(size, Image.Resampling.LANCZOS)
             except ImportError:
                 pass
+            except Exception as e:
+                print(f"SVG conversion error: {e}")
+        
+        # Try using rsvg-convert or inkscape if available via subprocess
+        try:
+            import subprocess
+            # Try rsvg-convert (librsvg)
+            result = subprocess.run(
+                ['rsvg-convert', '-w', str(size[0]), '-h', str(size[1]), svg_path],
+                capture_output=True,
+                timeout=5
+            )
+            if result.returncode == 0:
+                return Image.open(BytesIO(result.stdout))
+        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):
+            pass
         
         # If all else fails, return None
         return None
@@ -62,29 +78,37 @@ class IconLoader:
         Args:
             icon_name: Name of icon file (without extension, e.g., 'search')
             size: Size tuple (width, height)
-            color: Color to use for fill (for SVG)
+            color: Color to use for fill (for SVG only, PNG ignores this)
             
         Returns:
             PhotoImage object or None if loading fails
         """
-        cache_key = f"{icon_name}_{size[0]}_{size[1]}_{color}"
-        
-        # Check cache
-        if cache_key in self._cache:
-            return self._cache[cache_key]
-        
-        # Try PNG first (most compatible)
+        # Try PNG first (most compatible) - PNG doesn't use color parameter
         png_path = os.path.join(self.icon_dir, f"{icon_name}.png")
         if os.path.exists(png_path):
+            # Cache key for PNG doesn't include color since PNGs are fixed color
+            png_cache_key = f"{icon_name}_{size[0]}_{size[1]}_png"
+            
+            # Check cache
+            if png_cache_key in self._cache:
+                return self._cache[png_cache_key]
+            
             try:
                 img = Image.open(png_path)
                 if img.size != size:
                     img = img.resize(size, Image.Resampling.LANCZOS)
                 photo = ImageTk.PhotoImage(img)
-                self._cache[cache_key] = photo
+                self._cache[png_cache_key] = photo
                 return photo
             except Exception as e:
                 print(f"Error loading PNG icon {png_path}: {e}")
+        
+        # SVG cache key includes color since SVG can be colored
+        cache_key = f"{icon_name}_{size[0]}_{size[1]}_{color}"
+        
+        # Check cache for SVG
+        if cache_key in self._cache:
+            return self._cache[cache_key]
         
         # Try SVG as fallback
         svg_path = os.path.join(self.icon_dir, f"{icon_name}.svg")

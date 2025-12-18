@@ -34,7 +34,8 @@ class OnScreenKeyboard:
             self.frame.destroy()
         
         self.frame = tk.Frame(self.parent, bg=Theme.BACKGROUND, relief=tk.RAISED, borderwidth=2)
-        self.frame.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=10)
+        # Pack keyboard at bottom but ensure it's visible - use before parameter if needed
+        self.frame.pack(side=tk.BOTTOM, fill=tk.X, padx=5, pady=5)
         
         # Keyboard layout
         rows = [

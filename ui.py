@@ -171,6 +171,9 @@ class GrocyScannerUI:
         self.root.attributes('-fullscreen', Theme.FULLSCREEN)  # Fullscreen for Raspberry Pi
         self.root.configure(bg=Theme.BACKGROUND)
         
+        # Hide cursor for touch-only interface
+        self.root.config(cursor="none")
+        
         # Ensure window can receive keyboard input (important for barcode scanner)
         self.root.focus_set()
         self.root.focus_force()  # Force focus to ensure keyboard input works
@@ -269,9 +272,6 @@ class GrocyScannerUI:
         search_button.pack(side=tk.LEFT, padx=5)
         search_button.bind('<Button-1>', lambda e: self._perform_search())
         
-        # Initialize keyboard
-        self.keyboard = OnScreenKeyboard(main_frame, callback=self._perform_search)
-        
         # Title with Portal-style accent line
         title_container = tk.Frame(main_frame, bg=Theme.BACKGROUND)
         title_container.pack(pady=(0, Theme.TITLE_PADDING_BOTTOM // 2))
@@ -313,25 +313,56 @@ class GrocyScannerUI:
         self.add_indicator.pack_forget()  # Hide initially
         
         add_bg_frame = tk.Frame(self.add_button_frame, bg=Theme.BUTTON_ADD)
+        # Create container for icon and text
+        add_content_frame = tk.Frame(add_bg_frame, bg=Theme.BUTTON_ADD)
+        add_content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Load plus icon
+        icon_loader = get_icon_loader()
+        plus_icon = icon_loader.load_icon('plus', size=(28, 28), color='white')
+        if plus_icon:
+            add_icon_label = tk.Label(
+                add_content_frame,
+                image=plus_icon,
+                bg=Theme.BUTTON_ADD
+            )
+            add_icon_label.image = plus_icon  # Keep reference
+            add_icon_label.pack(pady=(0, 5))
+        
         self.add_button = tk.Label(
-            add_bg_frame,
-            text="➕ ADD TO STOCK",
+            add_content_frame,
+            text="ADD TO STOCK",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_ADD,
             fg='white',
         )
-        self.add_button.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.add_button.pack()
         add_bg_frame.pack(fill=tk.BOTH, expand=True)
         # Bind click events
         self.add_button.bind('<Button-1>', lambda e: self.set_action('add'))
         add_bg_frame.bind('<Button-1>', lambda e: self.set_action('add'))
         # Hover effect
-        def add_enter(e): add_bg_frame.config(bg=Theme.BUTTON_ADD_HOVER); self.add_button.config(bg=Theme.BUTTON_ADD_HOVER)
-        def add_leave(e): add_bg_frame.config(bg=Theme.BUTTON_ADD); self.add_button.config(bg=Theme.BUTTON_ADD)
+        def add_enter(e): 
+            add_bg_frame.config(bg=Theme.BUTTON_ADD_HOVER)
+            self.add_button.config(bg=Theme.BUTTON_ADD_HOVER)
+            add_content_frame.config(bg=Theme.BUTTON_ADD_HOVER)
+            if plus_icon:
+                add_icon_label.config(bg=Theme.BUTTON_ADD_HOVER)
+        def add_leave(e): 
+            add_bg_frame.config(bg=Theme.BUTTON_ADD)
+            self.add_button.config(bg=Theme.BUTTON_ADD)
+            add_content_frame.config(bg=Theme.BUTTON_ADD)
+            if plus_icon:
+                add_icon_label.config(bg=Theme.BUTTON_ADD)
         self.add_button.bind('<Enter>', add_enter)
         self.add_button.bind('<Leave>', add_leave)
         add_bg_frame.bind('<Enter>', add_enter)
         add_bg_frame.bind('<Leave>', add_leave)
+        add_content_frame.bind('<Enter>', add_enter)
+        add_content_frame.bind('<Leave>', add_leave)
+        if plus_icon:
+            add_icon_label.bind('<Enter>', add_enter)
+            add_icon_label.bind('<Leave>', add_leave)
         self.add_bg_frame = add_bg_frame  # Store reference
         self.add_button_frame.pack(side=tk.LEFT, padx=Theme.BUTTON_PADDING)
         
@@ -341,25 +372,56 @@ class GrocyScannerUI:
         self.open_indicator.pack_forget()  # Hide initially
         
         open_bg_frame = tk.Frame(self.open_button_frame, bg=Theme.BUTTON_OPEN)
+        # Create container for icon and text
+        open_content_frame = tk.Frame(open_bg_frame, bg=Theme.BUTTON_OPEN)
+        open_content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Load box icon
+        icon_loader = get_icon_loader()
+        box_icon = icon_loader.load_icon('box', size=(28, 28), color='white')
+        if box_icon:
+            open_icon_label = tk.Label(
+                open_content_frame,
+                image=box_icon,
+                bg=Theme.BUTTON_OPEN
+            )
+            open_icon_label.image = box_icon  # Keep reference
+            open_icon_label.pack(pady=(0, 5))
+        
         self.open_button = tk.Label(
-            open_bg_frame,
-            text="📦 OPEN PRODUCT",
+            open_content_frame,
+            text="OPEN PRODUCT",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_OPEN,
             fg='white',
         )
-        self.open_button.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.open_button.pack()
         open_bg_frame.pack(fill=tk.BOTH, expand=True)
         # Bind click events
         self.open_button.bind('<Button-1>', lambda e: self.set_action('open'))
         open_bg_frame.bind('<Button-1>', lambda e: self.set_action('open'))
         # Hover effect
-        def open_enter(e): open_bg_frame.config(bg=Theme.BUTTON_OPEN_HOVER); self.open_button.config(bg=Theme.BUTTON_OPEN_HOVER)
-        def open_leave(e): open_bg_frame.config(bg=Theme.BUTTON_OPEN); self.open_button.config(bg=Theme.BUTTON_OPEN)
+        def open_enter(e): 
+            open_bg_frame.config(bg=Theme.BUTTON_OPEN_HOVER)
+            self.open_button.config(bg=Theme.BUTTON_OPEN_HOVER)
+            open_content_frame.config(bg=Theme.BUTTON_OPEN_HOVER)
+            if box_icon:
+                open_icon_label.config(bg=Theme.BUTTON_OPEN_HOVER)
+        def open_leave(e): 
+            open_bg_frame.config(bg=Theme.BUTTON_OPEN)
+            self.open_button.config(bg=Theme.BUTTON_OPEN)
+            open_content_frame.config(bg=Theme.BUTTON_OPEN)
+            if box_icon:
+                open_icon_label.config(bg=Theme.BUTTON_OPEN)
         self.open_button.bind('<Enter>', open_enter)
         self.open_button.bind('<Leave>', open_leave)
         open_bg_frame.bind('<Enter>', open_enter)
         open_bg_frame.bind('<Leave>', open_leave)
+        open_content_frame.bind('<Enter>', open_enter)
+        open_content_frame.bind('<Leave>', open_leave)
+        if box_icon:
+            open_icon_label.bind('<Enter>', open_enter)
+            open_icon_label.bind('<Leave>', open_leave)
         self.open_bg_frame = open_bg_frame  # Store reference
         self.open_button_frame.pack(side=tk.LEFT, padx=Theme.BUTTON_PADDING)
         
@@ -369,31 +431,62 @@ class GrocyScannerUI:
         self.deduct_indicator.pack_forget()  # Hide initially
         
         deduct_bg_frame = tk.Frame(self.deduct_button_frame, bg=Theme.BUTTON_DEDUCT)
+        # Create container for icon and text
+        deduct_content_frame = tk.Frame(deduct_bg_frame, bg=Theme.BUTTON_DEDUCT)
+        deduct_content_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        
+        # Load minus icon
+        icon_loader = get_icon_loader()
+        minus_icon = icon_loader.load_icon('minus', size=(28, 28), color='white')
+        if minus_icon:
+            deduct_icon_label = tk.Label(
+                deduct_content_frame,
+                image=minus_icon,
+                bg=Theme.BUTTON_DEDUCT
+            )
+            deduct_icon_label.image = minus_icon  # Keep reference
+            deduct_icon_label.pack(pady=(0, 5))
+        
         self.deduct_button = tk.Label(
-            deduct_bg_frame,
-            text="➖ DEDUCT STOCK",
+            deduct_content_frame,
+            text="DEDUCT STOCK",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_DEDUCT,
             fg='white',
         )
-        self.deduct_button.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+        self.deduct_button.pack()
         deduct_bg_frame.pack(fill=tk.BOTH, expand=True)
         # Bind click events
         self.deduct_button.bind('<Button-1>', lambda e: self.set_action('deduct'))
         deduct_bg_frame.bind('<Button-1>', lambda e: self.set_action('deduct'))
         # Hover effect
-        def deduct_enter(e): deduct_bg_frame.config(bg=Theme.BUTTON_DEDUCT_HOVER); self.deduct_button.config(bg=Theme.BUTTON_DEDUCT_HOVER)
-        def deduct_leave(e): deduct_bg_frame.config(bg=Theme.BUTTON_DEDUCT); self.deduct_button.config(bg=Theme.BUTTON_DEDUCT)
+        def deduct_enter(e): 
+            deduct_bg_frame.config(bg=Theme.BUTTON_DEDUCT_HOVER)
+            self.deduct_button.config(bg=Theme.BUTTON_DEDUCT_HOVER)
+            deduct_content_frame.config(bg=Theme.BUTTON_DEDUCT_HOVER)
+            if minus_icon:
+                deduct_icon_label.config(bg=Theme.BUTTON_DEDUCT_HOVER)
+        def deduct_leave(e): 
+            deduct_bg_frame.config(bg=Theme.BUTTON_DEDUCT)
+            self.deduct_button.config(bg=Theme.BUTTON_DEDUCT)
+            deduct_content_frame.config(bg=Theme.BUTTON_DEDUCT)
+            if minus_icon:
+                deduct_icon_label.config(bg=Theme.BUTTON_DEDUCT)
         self.deduct_button.bind('<Enter>', deduct_enter)
         self.deduct_button.bind('<Leave>', deduct_leave)
         deduct_bg_frame.bind('<Enter>', deduct_enter)
         deduct_bg_frame.bind('<Leave>', deduct_leave)
+        deduct_content_frame.bind('<Enter>', deduct_enter)
+        deduct_content_frame.bind('<Leave>', deduct_leave)
+        if minus_icon:
+            deduct_icon_label.bind('<Enter>', deduct_enter)
+            deduct_icon_label.bind('<Leave>', deduct_leave)
         self.deduct_bg_frame = deduct_bg_frame  # Store reference
         self.deduct_button_frame.pack(side=tk.LEFT, padx=Theme.BUTTON_PADDING)
         
-        # Status frame
+        # Status frame - use fill=X instead of BOTH to leave room for keyboard
         self.status_frame = tk.Frame(main_frame, bg=Theme.BACKGROUND)
-        self.status_frame.pack(fill=tk.BOTH, expand=True, pady=Theme.STATUS_PADDING)
+        self.status_frame.pack(fill=tk.X, pady=Theme.STATUS_PADDING)
         
         # Status label with Portal-style formatting
         self.status_label = tk.Label(
@@ -431,9 +524,12 @@ class GrocyScannerUI:
         )
         self.info_label.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         
+        # Initialize keyboard - pack before bottom buttons so it appears above them
+        self.keyboard = OnScreenKeyboard(main_frame, callback=self._perform_search)
+        
         # Bottom buttons container (search and config on same line)
         bottom_buttons_frame = tk.Frame(main_frame, bg=Theme.BACKGROUND)
-        bottom_buttons_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=10)
+        bottom_buttons_frame.pack(side=tk.BOTTOM, fill=tk.X, pady=5)
         
         # Search icon button (bottom left)
         search_icon_frame = tk.Frame(bottom_buttons_frame, bg=Theme.BACKGROUND)
@@ -1457,6 +1553,21 @@ class GrocyScannerUI:
         if self.grocy_api:
             threading.Thread(target=self._load_product_groups, daemon=True).start()
         
+        # Status label to show selected group
+        self.group_indicator_label = tk.Label(
+            self.search_page_frame,
+            text="",
+            font=Theme.get_config_font(),
+            bg=Theme.BACKGROUND,
+            fg=Theme.STATUS_INFO,
+            anchor='w'
+        )
+        self.group_indicator_label.pack(fill=tk.X, padx=20, pady=(5, 0))
+        
+        # Load initial 10 products
+        if self.grocy_api:
+            threading.Thread(target=self._load_initial_products, daemon=True).start()
+        
         # Results frame with scrollbar
         results_container = tk.Frame(self.search_page_frame, bg=Theme.BACKGROUND)
         results_container.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
@@ -1474,12 +1585,17 @@ class GrocyScannerUI:
         canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         
+        # Touch scrolling support
+        self._setup_touch_scrolling(canvas, scrollable_frame)
+        
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        # Hide scrollbar for touch interface (can be re-enabled if needed)
+        # scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         
         # Store references
         self.search_results_frame = scrollable_frame
         self.search_canvas = canvas
+        self.search_scrollbar = scrollbar
         self.search_results_grid_cols = 3  # Number of columns in grid
         
         # Status label
@@ -1491,6 +1607,59 @@ class GrocyScannerUI:
             fg=Theme.TEXT_SECONDARY
         )
         self.search_status_label.pack(pady=10)
+    
+    def _setup_touch_scrolling(self, canvas: tk.Canvas, scrollable_frame: tk.Frame):
+        """
+        Setup touch scrolling for canvas.
+        Supports drag-to-scroll (swipe gestures) for touch interfaces.
+        """
+        # Variables to track scrolling
+        self._scroll_start_y = 0
+        self._scroll_start_pos = 0
+        self._is_scrolling = False
+        
+        def on_touch_start(event):
+            """Handle touch/mouse press - start scrolling."""
+            # Only start scrolling if clicking on canvas background, not on widgets
+            if event.widget == canvas or event.widget == scrollable_frame:
+                self._scroll_start_y = event.y
+                self._scroll_start_pos = canvas.canvasy(0)
+                self._is_scrolling = True
+                canvas.scan_mark(event.x, event.y)
+                return "break"  # Prevent event propagation
+        
+        def on_touch_move(event):
+            """Handle touch/mouse drag - scroll canvas."""
+            if self._is_scrolling:
+                # Scroll the canvas smoothly
+                canvas.scan_dragto(event.x, event.y, gain=1)
+                # Update scroll region
+                canvas.configure(scrollregion=canvas.bbox("all"))
+                return "break"  # Prevent event propagation
+        
+        def on_touch_end(event):
+            """Handle touch/mouse release - stop scrolling."""
+            self._is_scrolling = False
+        
+        # Bind touch/mouse events for scrolling on canvas
+        canvas.bind("<Button-1>", on_touch_start)
+        canvas.bind("<B1-Motion>", on_touch_move)
+        canvas.bind("<ButtonRelease-1>", on_touch_end)
+        
+        # Enable mouse wheel scrolling as fallback (for testing)
+        def on_mousewheel(event):
+            """Handle mouse wheel scrolling."""
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        
+        # Bind mouse wheel (works on some touchpads)
+        canvas.bind("<MouseWheel>", on_mousewheel)
+        
+        # Make canvas focusable for keyboard scrolling
+        canvas.focus_set()
+        canvas.bind("<Up>", lambda e: canvas.yview_scroll(-1, "units"))
+        canvas.bind("<Down>", lambda e: canvas.yview_scroll(1, "units"))
+        canvas.bind("<Prior>", lambda e: canvas.yview_scroll(-1, "pages"))
+        canvas.bind("<Next>", lambda e: canvas.yview_scroll(1, "pages"))
         
         # Focus on search entry and show keyboard automatically
         self.search_entry.focus_set()
@@ -1550,6 +1719,8 @@ class GrocyScannerUI:
             if products and len(products) > 0:
                 self.search_results = products
                 self.root.after(0, self._display_search_results, products)
+                # Update group indicator
+                self.root.after(0, self._update_group_indicator)
             else:
                 self.root.after(0, lambda: self.search_status_label.config(
                     text=f"No products found matching '{search_term}'",
@@ -1573,6 +1744,26 @@ class GrocyScannerUI:
             self.root.after(0, self._display_product_group_filters, all_groups)
         except Exception as e:
             print(f"Error loading product groups: {e}")
+    
+    def _load_initial_products(self):
+        """Load initial 10 products when search page opens."""
+        try:
+            products = self.grocy_api.get_recent_products(limit=10)
+            if products:
+                self.root.after(0, self._display_search_results, products)
+        except Exception as e:
+            print(f"Error loading initial products: {e}")
+    
+    def _update_group_indicator(self):
+        """Update the group indicator label to show selected group."""
+        if hasattr(self, 'group_indicator_label'):
+            if self.selected_product_group is None:
+                self.group_indicator_label.config(text="Showing: All products", fg=Theme.STATUS_INFO)
+            else:
+                group_name = "Unknown"
+                if self.selected_product_group in self.product_group_buttons:
+                    group_name = self.product_group_buttons[self.selected_product_group].get('name', 'Unknown')
+                self.group_indicator_label.config(text=f"Showing: {group_name}", fg=Theme.STATUS_SUCCESS)
     
     def _display_product_group_filters(self, groups: list):
         """Display product group filter buttons."""
@@ -1630,6 +1821,9 @@ class GrocyScannerUI:
         # Highlight "All" by default
         if None in self.product_group_buttons:
             self._highlight_product_group_button(None)
+        
+        # Update group indicator
+        self._update_group_indicator()
     
     def _filter_by_product_group(self, group_id: Optional[int]):
         """Filter products by selected product group."""
@@ -1641,6 +1835,9 @@ class GrocyScannerUI:
                 self._highlight_product_group_button(gid)
             else:
                 self._unhighlight_product_group_button(gid)
+        
+        # Update group indicator
+        self._update_group_indicator()
         
         # Re-display results with filter applied
         if hasattr(self, 'search_results') and self.search_results:
@@ -1691,6 +1888,9 @@ class GrocyScannerUI:
         
         # Store original products for reference
         self.search_results = products
+        
+        # Update group indicator after filtering
+        self._update_group_indicator()
         
         if hasattr(self, 'search_status_label'):
             total_count = len(products)
@@ -2058,66 +2258,118 @@ class GrocyScannerUI:
         
         # Add button
         add_frame = tk.Frame(actions_frame, bg=Theme.BUTTON_ADD)
+        add_content = tk.Frame(add_frame, bg=Theme.BUTTON_ADD)
+        add_content.pack(padx=15, pady=12)
+        
+        icon_loader = get_icon_loader()
+        plus_icon = icon_loader.load_icon('plus', size=(24, 24), color='white')
+        if plus_icon:
+            add_icon = tk.Label(add_content, image=plus_icon, bg=Theme.BUTTON_ADD)
+            add_icon.image = plus_icon
+            add_icon.pack(pady=(0, 3))
+        
         add_label = tk.Label(
-            add_frame,
-            text="➕ ADD",
+            add_content,
+            text="ADD",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_ADD,
             fg='white',
         )
-        add_label.pack(padx=15, pady=12)
+        add_label.pack()
         add_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
         add_label.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'add'))
         add_frame.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'add'))
+        add_content.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'add'))
+        if plus_icon:
+            add_icon.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'add'))
         
-        def add_enter(e): add_frame.config(bg=Theme.BUTTON_ADD_HOVER); add_label.config(bg=Theme.BUTTON_ADD_HOVER)
-        def add_leave(e): add_frame.config(bg=Theme.BUTTON_ADD); add_label.config(bg=Theme.BUTTON_ADD)
+        def add_enter(e): add_frame.config(bg=Theme.BUTTON_ADD_HOVER); add_label.config(bg=Theme.BUTTON_ADD_HOVER); add_content.config(bg=Theme.BUTTON_ADD_HOVER); (add_icon.config(bg=Theme.BUTTON_ADD_HOVER) if plus_icon else None)
+        def add_leave(e): add_frame.config(bg=Theme.BUTTON_ADD); add_label.config(bg=Theme.BUTTON_ADD); add_content.config(bg=Theme.BUTTON_ADD); (add_icon.config(bg=Theme.BUTTON_ADD) if plus_icon else None)
         add_label.bind('<Enter>', add_enter)
         add_label.bind('<Leave>', add_leave)
         add_frame.bind('<Enter>', add_enter)
         add_frame.bind('<Leave>', add_leave)
+        add_content.bind('<Enter>', add_enter)
+        add_content.bind('<Leave>', add_leave)
+        if plus_icon:
+            add_icon.bind('<Enter>', add_enter)
+            add_icon.bind('<Leave>', add_leave)
         
         # Open button
         open_frame = tk.Frame(actions_frame, bg=Theme.BUTTON_OPEN)
+        open_content = tk.Frame(open_frame, bg=Theme.BUTTON_OPEN)
+        open_content.pack(padx=15, pady=12)
+        
+        box_icon = icon_loader.load_icon('box', size=(24, 24), color='white')
+        if box_icon:
+            open_icon = tk.Label(open_content, image=box_icon, bg=Theme.BUTTON_OPEN)
+            open_icon.image = box_icon
+            open_icon.pack(pady=(0, 3))
+        
         open_label = tk.Label(
-            open_frame,
-            text="📦 OPEN",
+            open_content,
+            text="OPEN",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_OPEN,
             fg='white',
         )
-        open_label.pack(padx=15, pady=12)
+        open_label.pack()
         open_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
         open_label.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'open'))
         open_frame.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'open'))
+        open_content.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'open'))
+        if box_icon:
+            open_icon.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'open'))
         
-        def open_enter(e): open_frame.config(bg=Theme.BUTTON_OPEN_HOVER); open_label.config(bg=Theme.BUTTON_OPEN_HOVER)
-        def open_leave(e): open_frame.config(bg=Theme.BUTTON_OPEN); open_label.config(bg=Theme.BUTTON_OPEN)
+        def open_enter(e): open_frame.config(bg=Theme.BUTTON_OPEN_HOVER); open_label.config(bg=Theme.BUTTON_OPEN_HOVER); open_content.config(bg=Theme.BUTTON_OPEN_HOVER); (open_icon.config(bg=Theme.BUTTON_OPEN_HOVER) if box_icon else None)
+        def open_leave(e): open_frame.config(bg=Theme.BUTTON_OPEN); open_label.config(bg=Theme.BUTTON_OPEN); open_content.config(bg=Theme.BUTTON_OPEN); (open_icon.config(bg=Theme.BUTTON_OPEN) if box_icon else None)
         open_label.bind('<Enter>', open_enter)
         open_label.bind('<Leave>', open_leave)
         open_frame.bind('<Enter>', open_enter)
         open_frame.bind('<Leave>', open_leave)
+        open_content.bind('<Enter>', open_enter)
+        open_content.bind('<Leave>', open_leave)
+        if box_icon:
+            open_icon.bind('<Enter>', open_enter)
+            open_icon.bind('<Leave>', open_leave)
         
         # Deduct button
         deduct_frame = tk.Frame(actions_frame, bg=Theme.BUTTON_DEDUCT)
+        deduct_content = tk.Frame(deduct_frame, bg=Theme.BUTTON_DEDUCT)
+        deduct_content.pack(padx=15, pady=12)
+        
+        minus_icon = icon_loader.load_icon('minus', size=(24, 24), color='white')
+        if minus_icon:
+            deduct_icon = tk.Label(deduct_content, image=minus_icon, bg=Theme.BUTTON_DEDUCT)
+            deduct_icon.image = minus_icon
+            deduct_icon.pack(pady=(0, 3))
+        
         deduct_label = tk.Label(
-            deduct_frame,
-            text="➖ DEDUCT",
+            deduct_content,
+            text="DEDUCT",
             font=Theme.get_button_font(),
             bg=Theme.BUTTON_DEDUCT,
             fg='white',
         )
-        deduct_label.pack(padx=15, pady=12)
+        deduct_label.pack()
         deduct_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=5)
         deduct_label.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'deduct'))
         deduct_frame.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'deduct'))
+        deduct_content.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'deduct'))
+        if minus_icon:
+            deduct_icon.bind('<Button-1>', lambda e: self._perform_product_action(product_id, 'deduct'))
         
-        def deduct_enter(e): deduct_frame.config(bg=Theme.BUTTON_DEDUCT_HOVER); deduct_label.config(bg=Theme.BUTTON_DEDUCT_HOVER)
-        def deduct_leave(e): deduct_frame.config(bg=Theme.BUTTON_DEDUCT); deduct_label.config(bg=Theme.BUTTON_DEDUCT)
+        def deduct_enter(e): deduct_frame.config(bg=Theme.BUTTON_DEDUCT_HOVER); deduct_label.config(bg=Theme.BUTTON_DEDUCT_HOVER); deduct_content.config(bg=Theme.BUTTON_DEDUCT_HOVER); (deduct_icon.config(bg=Theme.BUTTON_DEDUCT_HOVER) if minus_icon else None)
+        def deduct_leave(e): deduct_frame.config(bg=Theme.BUTTON_DEDUCT); deduct_label.config(bg=Theme.BUTTON_DEDUCT); deduct_content.config(bg=Theme.BUTTON_DEDUCT); (deduct_icon.config(bg=Theme.BUTTON_DEDUCT) if minus_icon else None)
         deduct_label.bind('<Enter>', deduct_enter)
         deduct_label.bind('<Leave>', deduct_leave)
         deduct_frame.bind('<Enter>', deduct_enter)
         deduct_frame.bind('<Leave>', deduct_leave)
+        deduct_content.bind('<Enter>', deduct_enter)
+        deduct_content.bind('<Leave>', deduct_leave)
+        if minus_icon:
+            deduct_icon.bind('<Enter>', deduct_enter)
+            deduct_icon.bind('<Leave>', deduct_leave)
     
     def _perform_product_action(self, product_id: int, action: str):
         """Perform action (add/open/deduct) on product."""
