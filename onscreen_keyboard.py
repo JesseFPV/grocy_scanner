@@ -65,7 +65,6 @@ class OnScreenKeyboard:
                         bg=KEY_BG,
                         fg=KEY_FG,
                         font=Theme.get_config_font(),
-,
                         width=15,
                         height=2
                     )
@@ -79,7 +78,6 @@ class OnScreenKeyboard:
                         bg=KEY_BG,
                         fg=KEY_FG,
                         font=Theme.get_config_font(),
-,
                         width=10,
                         height=2
                     )
@@ -104,7 +102,6 @@ class OnScreenKeyboard:
                             bg=KEY_BG,
                             fg=KEY_FG,
                             font=Theme.get_config_font(),
-,
                             width=5,
                             height=2
                         )
@@ -129,7 +126,6 @@ class OnScreenKeyboard:
                             bg=KEY_BG,
                             fg=KEY_FG,
                             font=Theme.get_config_font(),
-,
                             width=5,
                             height=2
                         )
@@ -148,7 +144,6 @@ class OnScreenKeyboard:
                         bg=KEY_BG,
                         fg=KEY_FG,
                         font=Theme.get_config_font(),
-,
                         width=4,
                         height=2
                     )
