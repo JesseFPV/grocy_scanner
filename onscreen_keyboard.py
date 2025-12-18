@@ -41,6 +41,7 @@ class OnScreenKeyboard:
             ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
             ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
             ['⇧', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '.', '-', '_'],
+            [':', '/', '?', '&', '=', '@', '#', '%', '+'],
             ['Space', 'Enter', '⌫']
         ]
         
@@ -113,7 +114,11 @@ class OnScreenKeyboard:
                     key_label.bind('<Button-1>', lambda e: self._backspace())
                     key_frame.bind('<Button-1>', lambda e: self._backspace())
                 else:
-                    display_char = key.upper() if (self.shift_pressed or self.caps_lock) else key.lower()
+                    # Special characters (URL symbols) are displayed as-is, no case conversion
+                    if key in [':', '/', '?', '&', '=', '@', '#', '%', '+', '.', '-', '_']:
+                        display_char = key
+                    else:
+                        display_char = key.upper() if (self.shift_pressed or self.caps_lock) else key.lower()
                     key_label = tk.Label(
                         key_frame,
                         text=display_char,
@@ -155,7 +160,11 @@ class OnScreenKeyboard:
     def _insert_char(self, char: str):
         """Insert a character into the target entry."""
         if self.target_entry:
-            display_char = char.upper() if (self.shift_pressed or self.caps_lock) else char.lower()
+            # Special characters (URL symbols) are inserted as-is, no case conversion
+            if char in [':', '/', '?', '&', '=', '@', '#', '%', '+', '.', '-', '_']:
+                display_char = char
+            else:
+                display_char = char.upper() if (self.shift_pressed or self.caps_lock) else char.lower()
             current_pos = self.target_entry.index(tk.INSERT)
             self.target_entry.insert(current_pos, display_char)
             self.target_entry.focus_set()

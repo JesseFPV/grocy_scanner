@@ -50,7 +50,7 @@ sudo apt-get upgrade -y
 sudo apt-get install -y \
     xserver-xorg \
     xinit \
-    xvfb \
+    openbox \
     python3 \
     python3-pip \
     python3-venv \
@@ -60,6 +60,7 @@ sudo apt-get install -y \
     libxss1 \
     libgconf-2-4 \
     xinput \
+    x11-xserver-utils \
     x11-xserver-utils \
     git
 
@@ -158,9 +159,51 @@ Configuration is saved to `config.json` in the project directory. This file is a
 
 To automatically start Intake when your Raspberry Pi boots, we'll create a systemd service that starts the X server and the application.
 
-#### 8.1: Create Startup Script
+#### 8.1: Install Openbox Window Manager
 
-Create a script that starts the X server and then the application:
+Openbox is a lightweight window manager that we'll use to run the application in kiosk mode:
+
+```bash
+sudo apt-get install -y openbox
+```
+
+#### 8.2: Create Openbox Autostart Script
+
+Create the Openbox autostart script that will launch Intake:
+
+```bash
+# Create Openbox config directory
+mkdir -p /home/pi/.config/openbox
+
+# Create autostart script
+nano /home/pi/.config/openbox/autostart
+```
+
+Add the following content:
+
+```bash
+#!/bin/sh
+
+# Disable screen blanking
+xset -dpms
+xset s off
+xset s noblank
+
+# Start Intake app
+cd /home/pi/grocy_scanner
+source venv/bin/activate
+exec python main.py
+```
+
+Make it executable:
+
+```bash
+chmod +x /home/pi/.config/openbox/autostart
+```
+
+#### 8.3: Create Startup Script
+
+Create a script that starts X server with Openbox on tty1:
 
 ```bash
 # Create the startup script
@@ -170,137 +213,60 @@ sudo nano /usr/local/bin/start-intake.sh
 Add the following content (adjust paths if your username or project location differs):
 
 ```bash
-#!/bin/bash
-# Don't exit on error immediately, we want to log errors
-set +e
+#!/usr/bin/env bash
+# Intake kiosk startup script
+# Starts X on tty1 and launches the Intake Tkinter app
 
-# Log file for debugging
-LOG_FILE="/home/pi/grocy_scanner/intake.log"
+set -e
 
-# Function to log messages
+APP_DIR="/home/pi/grocy_scanner"
+VENV_DIR="$APP_DIR/venv"
+LOG_FILE="$APP_DIR/intake.log"
+
+# Log helper
 log() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" | tee -a "$LOG_FILE"
+    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
 }
 
-# Redirect stderr to log file as well
-exec 2>> "$LOG_FILE"
+log "==== Intake startup ===="
 
-log "=== Starting Intake application ==="
-
-# Kill any existing X server on display :0
-log "Checking for existing X server"
-if pgrep -f "X.*:0" > /dev/null; then
-    log "Killing existing X server"
-    pkill -f "X.*:0" || true
-    sleep 2
-fi
-
-# Start X server on display :0
-# For headless operation, we need to use Xvfb or start X with vtXX
-# First, try to find an available virtual terminal
-log "Starting X server on display :0"
-
-# Try to start X server with explicit vt (virtual terminal)
-# This works better for headless/SSH setups
-VT_NUM=$(fgconsole 2>/dev/null || echo "7")
-log "Using virtual terminal: $VT_NUM"
-
-# Start X server with explicit vt and no tty requirement
-X :0 -nolisten tcp vt$VT_NUM -ac -nolock -dpi 96 >> "$LOG_FILE" 2>&1 &
-X_PID=$!
-
-# Wait for X server to be ready
-log "Waiting for X server to initialize..."
-sleep 5
-
-# Check if X server process is still running
-if ! ps -p $X_PID > /dev/null 2>&1; then
-    log "WARNING: X server process may have exited, checking if X is running..."
-    # Check if any X process is running on display :0
-    if ! pgrep -f "X.*:0" > /dev/null; then
-        log "ERROR: X server failed to start"
-        log "Attempting alternative method with Xvfb..."
-        # Try Xvfb as fallback (virtual framebuffer)
-        if command -v Xvfb > /dev/null 2>&1; then
-            Xvfb :0 -screen 0 1024x768x24 >> "$LOG_FILE" 2>&1 &
-            sleep 3
-            if ! DISPLAY=:0 xdpyinfo > /dev/null 2>&1; then
-                log "ERROR: Xvfb also failed to start"
-                exit 1
-            fi
-            log "Xvfb started successfully as fallback"
-        else
-            log "ERROR: X server failed and Xvfb not available"
-            log "Install Xvfb with: sudo apt-get install xvfb"
-            exit 1
-        fi
-    else
-        log "X server is running (different PID)"
-    fi
-else
-    log "X server started successfully with PID: $X_PID"
-fi
-
-# Verify X server is actually responding
-log "Verifying X server is responding"
-if ! DISPLAY=:0 xdpyinfo > /dev/null 2>&1; then
-    log "ERROR: X server is not responding on display :0"
-    log "X processes:"
-    ps aux | grep -E "[X]|Xvfb" >> "$LOG_FILE" 2>&1
+# Safety: ensure correct user
+if [ "$(id -u)" = "0" ]; then
+    log "ERROR: Script must not run as root"
     exit 1
 fi
 
-log "X server verified and responding"
-
-# Set DISPLAY variable
-export DISPLAY=:0
-log "DISPLAY set to: $DISPLAY"
-
-# Navigate to project directory
-log "Changing to project directory"
-cd /home/pi/grocy_scanner || {
-    log "ERROR: Failed to change directory to /home/pi/grocy_scanner"
-    exit 1
-}
-log "Current directory: $(pwd)"
-
-# Check if venv exists
-if [ ! -f "venv/bin/python" ]; then
-    log "ERROR: Virtual environment not found at venv/bin/python"
-    log "Directory contents:"
-    ls -la >> "$LOG_FILE" 2>&1
+# Ensure app directory exists
+if [ ! -d "$APP_DIR" ]; then
+    log "ERROR: App directory not found: $APP_DIR"
     exit 1
 fi
-log "Virtual environment found"
 
-# Activate virtual environment and start the application
+cd "$APP_DIR"
+
+# Ensure virtual environment exists
+if [ ! -f "$VENV_DIR/bin/python" ]; then
+    log "ERROR: venv not found at $VENV_DIR"
+    exit 1
+fi
+
 log "Activating virtual environment"
-source venv/bin/activate || {
-    log "ERROR: Failed to activate virtual environment"
-    exit 1
-}
+source "$VENV_DIR/bin/activate"
 
-# Verify Python path
-log "Python path: $(which python)"
-log "Python version: $(python --version)"
+# Export minimal environment for X / Tkinter
+export HOME="/home/pi"
+export USER="pi"
+export DISPLAY=":0"
+export XAUTHORITY="$HOME/.Xauthority"
 
-# Verify Python can import tkinter
-log "Testing tkinter import"
-if ! python -c "import tkinter" >> "$LOG_FILE" 2>&1; then
-    log "ERROR: Tkinter not available"
-    log "Testing with python3-tk:"
-    python3 -c "import tkinter" >> "$LOG_FILE" 2>&1 || log "python3-tk also failed"
-    exit 1
-fi
-log "Tkinter import successful"
+# Create Xauthority if missing
+touch "$XAUTHORITY"
+chmod 600 "$XAUTHORITY"
 
-# Verify other required packages
-log "Testing required packages"
-python -c "import requests" >> "$LOG_FILE" 2>&1 || log "WARNING: requests not found"
-python -c "from PIL import Image" >> "$LOG_FILE" 2>&1 || log "WARNING: Pillow not found"
+log "Starting X via startx on tty1"
 
-log "Starting main.py"
-exec python main.py >> "$LOG_FILE" 2>&1
+# Start X and keep VT
+exec startx /usr/bin/openbox-session -- :0 vt1 -keeptty
 ```
 
 Make the script executable and set proper ownership:
@@ -310,7 +276,7 @@ sudo chmod +x /usr/local/bin/start-intake.sh
 sudo chown pi:pi /usr/local/bin/start-intake.sh
 ```
 
-#### 8.2: Create Systemd Service
+#### 8.4: Create Systemd Service
 
 Create a systemd service file:
 
@@ -322,22 +288,37 @@ Add the following content (adjust `User=` if your username is different):
 
 ```ini
 [Unit]
-Description=Intake Application
-After=network.target
+Description=Intake Application (kiosk)
+After=getty@tty1.service network.target
+Wants=getty@tty1.service
 
 [Service]
-Type=simple
 User=pi
-ExecStart=/usr/local/bin/start-intake.sh
-Restart=always
-RestartSec=10
+WorkingDirectory=/home/pi/grocy_scanner
+Environment=HOME=/home/pi
 Environment=DISPLAY=:0
+
+StandardInput=tty
+TTYPath=/dev/tty1
+TTYReset=yes
+TTYVHangup=yes
+TTYVTDisallocate=yes
+
+ExecStart=/usr/local/bin/start-intake.sh
+Restart=on-failure
+RestartSec=2
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-#### 8.3: Enable and Start the Service
+**Important notes about this service configuration:**
+- `TTYPath=/dev/tty1` - Runs on virtual terminal 1 (the physical display)
+- `After=getty@tty1.service` - Waits for tty1 to be ready
+- `Restart=on-failure` - Only restarts on failure, not on normal exit
+- `StandardInput=tty` - Connects to the terminal for proper X server operation
+
+#### 8.5: Enable and Start the Service
 
 ```bash
 # Reload systemd to recognize the new service
@@ -355,7 +336,7 @@ sudo systemctl status intake.service
 
 The service should now be running. After rebooting your Raspberry Pi, Intake will start automatically.
 
-#### 8.4: Useful Service Commands
+#### 8.6: Useful Service Commands
 
 ```bash
 # View service status
@@ -493,36 +474,33 @@ If your scanner doesn't work automatically, you may need to:
 
 **X server not starting**
 
-This is common when running via SSH. The X server needs access to `/dev/tty0` which requires console access.
+This is common when running via SSH. The solution is to use `startx` with Openbox on a virtual terminal (tty1).
 
-**Solution 1: Use Xvfb (Virtual Framebuffer) - Recommended for headless**
+**Solution: Use startx with Openbox (as documented in installation)**
 ```bash
-# Install Xvfb if not already installed
-sudo apt-get install xvfb
+# Ensure Openbox is installed
+sudo apt-get install openbox
 
-# Test Xvfb manually
-Xvfb :0 -screen 0 1024x768x24 &
-sleep 2
-DISPLAY=:0 xdpyinfo
+# Ensure autostart script exists and is executable
+chmod +x /home/pi/.config/openbox/autostart
+
+# Test manually (will block SSH session)
+sudo -u pi startx /usr/bin/openbox-session -- :0 vt1 -keeptty
 ```
 
-**Solution 2: Start X server with explicit virtual terminal**
+**If you see "Permission denied" for /dev/tty0:**
+- This is normal when running via SSH
+- The service configuration uses `TTYPath=/dev/tty1` which works correctly
+- Make sure the service is configured as shown in Step 8.4
+
+**Verify Openbox autostart:**
 ```bash
-# Find available VT
-fgconsole
+# Check autostart script exists
+ls -la /home/pi/.config/openbox/autostart
 
-# Start X with explicit VT (replace 7 with your VT number)
-X :0 -nolisten tcp vt7 -ac -nolock &
+# View autostart content
+cat /home/pi/.config/openbox/autostart
 ```
-
-**Solution 3: Add user to video/tty groups**
-```bash
-sudo usermod -a -G video,tty pi
-# Then logout and login again
-```
-
-**Solution 4: Use the improved startup script**
-The startup script in the README now tries multiple methods automatically, including Xvfb as fallback.
 
 ### Scanner not working
 
