@@ -1,0 +1,23 @@
+# Example systemd service file for Intake
+# Copy this to /etc/systemd/system/intake.service
+# Then run: sudo systemctl enable intake.service
+#          sudo systemctl start intake.service
+#
+# Zie INSTALLATION.md voor volledige installatie instructies
+
+[Unit]
+Description=Intake Application
+After=network.target graphical.target
+
+[Service]
+Type=simple
+User=pi
+WorkingDirectory=/home/pi/grocy_scanner
+Environment=DISPLAY=:0
+ExecStart=/usr/bin/python3 /home/pi/grocy_scanner/main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=graphical.target
+
