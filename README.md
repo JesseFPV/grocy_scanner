@@ -20,207 +20,153 @@ A Raspberry Pi-based barcode scanner interface for Grocy inventory management. T
 
 ## Software Requirements
 
-- Raspberry Pi OS (latest version recommended)
+- Raspberry Pi OS Lite 64-bit (recommended)
 - Python 3.7 or higher
 
-## Quick Start - Installation
+## Installation
 
-**For complete installation instructions, see [INSTALLATION.md](INSTALLATION.md)**
+This guide covers installation on Raspberry Pi OS Lite 64-bit. The application requires an X server to run the GUI, which we'll install and configure.
 
-Quick overview:
-1. Install system packages: `sudo apt-get install python3 python3-pip python3-venv python3-tk python3-pil git`
-2. Clone repository: `git clone https://github.com/JesseFPV/grocy_scanner.git`
-3. Create virtual environment: `python3 -m venv venv`
-4. Activate venv and install dependencies: `source venv/bin/activate && pip install -r requirements.txt`
-5. Start application: `source venv/bin/activate && python main.py`
-6. Configure auto-start: See [Systemd Service](#systemd-service-auto-start-on-boot) section below or [INSTALLATION.md](INSTALLATION.md) for detailed instructions
+### Step 1: Install Raspberry Pi OS Lite 64-bit
 
-## Raspberry Pi OS Installation
+1. Download **Raspberry Pi OS Lite (64-bit)** from [raspberrypi.org](https://www.raspberrypi.org/software/)
+2. Use Raspberry Pi Imager to flash the OS to your SD card
+3. During the imaging process, configure:
+   - **SSH**: Enable SSH access (recommended)
+   - **WiFi**: Configure WiFi credentials (optional but recommended)
+   - **User**: Set up your user account (default is `pi`)
+4. Insert the SD card into your Raspberry Pi and boot it
 
-### Recommended: Light Install (Without Desktop)
+### Step 2: Update System and Install X Server
 
-For a Raspberry Pi that only runs this application, a **Light installation without desktop** is recommended. This saves resources and boots faster.
-
-**Step 1: Install Raspberry Pi OS Light**
-- Download Raspberry Pi OS Lite (without desktop) from [raspberrypi.org](https://www.raspberrypi.org/software/)
-- Flash to SD card using Raspberry Pi Imager
-- Enable SSH and configure WiFi (optional)
-
-**Step 2: Install required system packages**
-
-After first boot and login, install the required packages for Tkinter and X11:
+Connect to your Raspberry Pi via SSH or directly, then run:
 
 ```bash
-# Update package list
+# Update package list and upgrade system
 sudo apt-get update
+sudo apt-get upgrade -y
 
-# Install X server and Tkinter dependencies
+# Install X server and required dependencies
 sudo apt-get install -y \
     xserver-xorg \
     xinit \
+    python3 \
+    python3-pip \
+    python3-venv \
     python3-tk \
     python3-pil \
     python3-pil.imagetk \
     libxss1 \
-    libgconf-2-4
-
-# For touchscreen support (usually already present, but to be sure)
-sudo apt-get install -y \
+    libgconf-2-4 \
     xinput \
-    x11-xserver-utils
+    x11-xserver-utils \
+    git
 
-# Install Python pip and venv if not already installed
-sudo apt-get install -y python3-pip python3-venv
+# Verify X server installation
+which X
 ```
 
-**Step 3: Configure auto-start (optional)**
+**Note:** The `xinit` package provides the `startx` command, which we'll use to start the X server.
 
-If you want the application to start automatically on boot, see the [Systemd Service](#systemd-service) section below.
-
-**Important notes for Light installation:**
-
-- You need an **X server** for Tkinter GUI (this is installed in step 2)
-- The application must run with `DISPLAY=:0` to use the touchscreen
-- For auto-start on boot, you need to start an X server (see systemd service section)
-- Touchscreen drivers are usually automatically detected by Raspberry Pi OS
-
-**Step 4: Test the installation**
+### Step 3: Download Project from GitHub
 
 ```bash
-# Test if Tkinter works
-python3 -c "import tkinter; print('Tkinter works!')"
+# Navigate to home directory
+cd ~
 
-# Test X server (start X server)
-startx
-# Press Ctrl+Alt+F1 to return to terminal when X starts
-```
+# Clone the repository
+git clone https://github.com/JesseFPV/grocy_scanner.git
 
-**Step 5: Create virtual environment and install dependencies**
-
-```bash
-# Navigate to project directory
+# Navigate into the project directory
 cd grocy_scanner
+```
 
-# Create virtual environment
+**Note:** If you're using a fork or different repository, adjust the URL accordingly.
+
+### Step 4: Create Virtual Environment
+
+```bash
+# Create a virtual environment
 python3 -m venv venv
 
-# Activate virtual environment
+# Verify venv was created
+ls -la venv/bin/python
+```
+
+**Why use a virtual environment?**
+- Raspberry Pi OS uses an "externally managed" Python environment
+- A virtual environment isolates project dependencies
+- Prevents conflicts with system Python packages
+
+### Step 5: Install Required Packages
+
+```bash
+# Activate the virtual environment
 source venv/bin/activate
 
-# Install Python dependencies
+# Upgrade pip (recommended)
+pip install --upgrade pip
+
+# Install project dependencies
 pip install -r requirements.txt
+
+# Verify installation
+pip list
 ```
 
-**Step 6: Start the application**
+You should see packages like `requests` and `Pillow` installed in the virtual environment.
+
+### Step 6: Test the Installation
+
+Before setting up auto-start, let's test that everything works:
 
 ```bash
-# Activate virtual environment (if not already active)
+# Make sure venv is activated
 source venv/bin/activate
 
-# Start the application (with X server)
-DISPLAY=:0 python main.py
+# Test Tkinter (should work without errors)
+python3 -c "import tkinter; print('Tkinter works')"
+
+# Start X server in background
+startx &
+
+# Wait a few seconds for X server to initialize
+sleep 3
+
+# Set DISPLAY variable and start the application
+export DISPLAY=:0
+python main.py
 ```
 
-### Alternative: Full Install (With Desktop)
+The application should start and show the configuration dialog. Press `Escape` to exit.
 
-If you prefer a full desktop environment (for example, for debugging or other applications):
+**Troubleshooting:**
+- If you get "no display name and no $DISPLAY", make sure you've set `export DISPLAY=:0`
+- If `startx` is not found, ensure `xinit` is installed: `sudo apt-get install xinit`
+- If the application doesn't start, check logs: `journalctl -u intake.service -n 50` (after setting up the service)
 
-- Install Raspberry Pi OS with Desktop
-- Tkinter is usually already installed
-- Follow the normal installation steps below
+### Step 7: Configure the Application
 
-## Installation
+On first run, the application will prompt you to enter:
+- **Grocy Host**: The URL of your Grocy instance (e.g., `https://grocy.example.com`)
+- **API Key**: Your Grocy API key (found in Grocy under Settings > API keys)
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/JesseFPV/grocy_scanner.git
-   cd grocy_scanner
-   ```
+Configuration is saved to `config.json` in the project directory. This file is automatically ignored by git to protect your API key.
 
-2. **Create virtual environment:**
-   ```bash
-   python3 -m venv venv
-   ```
+### Step 8: Set Up Auto-Start on Boot
 
-3. **Activate virtual environment and install dependencies:**
-   ```bash
-   source venv/bin/activate
-   pip install -r requirements.txt
-   ```
+To automatically start Intake when your Raspberry Pi boots, we'll create a systemd service that starts the X server and the application.
 
-4. **Run the application:**
-   
-   **Important:** If you're running from SSH or a terminal without a display, you need to set the DISPLAY variable:
-   
-   ```bash
-   # Make sure venv is activated
-   source venv/bin/activate
-   
-   # For desktop environment (if running from SSH, use DISPLAY=:0)
-   export DISPLAY=:0
-   python main.py
-   ```
-   
-   Or run it directly with DISPLAY set:
-   ```bash
-   source venv/bin/activate
-   DISPLAY=:0 python main.py
-   ```
-   
-   **Note:** 
-   - If you're logged in directly on the Raspberry Pi desktop, `DISPLAY=:0` is usually not needed
-   - If you're connecting via SSH, you must use `DISPLAY=:0` or `export DISPLAY=:0`
-   - The exact device path for your USB scanner may vary. Check `/dev/input/` or use `dmesg` after plugging in the scanner.
+#### 8.1: Create Startup Script
 
-## Systemd Service (Auto-start on boot)
-
-To automatically start Intake when your Raspberry Pi boots, you can set up a systemd service. This is especially useful for dedicated scanner stations.
-
-### Option A: With Desktop Environment (Recommended for beginners)
-
-If you have a desktop environment, use the example service file:
+Create a script that starts the X server and then the application:
 
 ```bash
-# Copy the example service file
-sudo cp grocy-scanner.service.example /etc/systemd/system/intake.service
-
-# Edit the service file to adjust paths
-sudo nano /etc/systemd/system/intake.service
-```
-
-Make sure to adjust the following in the service file:
-- `User=pi` - Change to your username if different
-- `WorkingDirectory=/home/pi/grocy_scanner` - Change to your project path
-- `ExecStart=/home/pi/grocy_scanner/venv/bin/python /home/pi/grocy_scanner/main.py` - Use venv Python, adjust path if needed
-
-Then enable and start the service:
-
-```bash
-# Reload systemd configuration
-sudo systemctl daemon-reload
-
-# Enable service (start automatically on boot)
-sudo systemctl enable intake.service
-
-# Start the service now
-sudo systemctl start intake.service
-
-# Check status
-sudo systemctl status intake.service
-```
-
-### Option B: Without Desktop (Lite installation)
-
-For a Lite installation without desktop, you need to start an X server first:
-
-**1. Create an X server startup script:**
-
-```bash
-# Create the script
+# Create the startup script
 sudo nano /usr/local/bin/start-intake.sh
 ```
 
-Add this content (adjust paths to your situation):
+Add the following content (adjust paths if your username or project location differs):
 
 ```bash
 #!/bin/bash
@@ -232,26 +178,28 @@ sleep 3
 export DISPLAY=:0
 
 # Navigate to project directory
-cd /home/pi/grocy_scanner  # Adjust to your path
+cd /home/pi/grocy_scanner
 
 # Activate virtual environment and start the application
 source venv/bin/activate
 python main.py
 ```
 
-Make it executable:
+Make the script executable:
 
 ```bash
 sudo chmod +x /usr/local/bin/start-intake.sh
 ```
 
-**2. Create a systemd service:**
+#### 8.2: Create Systemd Service
+
+Create a systemd service file:
 
 ```bash
 sudo nano /etc/systemd/system/intake.service
 ```
 
-Add this content (adjust paths to your situation):
+Add the following content (adjust `User=` if your username is different):
 
 ```ini
 [Unit]
@@ -264,58 +212,51 @@ User=pi
 ExecStart=/usr/local/bin/start-intake.sh
 Restart=always
 RestartSec=10
+Environment=DISPLAY=:0
 
 [Install]
 WantedBy=multi-user.target
 ```
 
-**3. Enable and start the service:**
+#### 8.3: Enable and Start the Service
 
 ```bash
-# Reload systemd
+# Reload systemd to recognize the new service
 sudo systemctl daemon-reload
 
-# Enable service (start on boot)
+# Enable the service to start on boot
 sudo systemctl enable intake.service
 
-# Start the service now
+# Start the service now (don't wait for reboot)
 sudo systemctl start intake.service
 
-# Check status
+# Check the service status
 sudo systemctl status intake.service
 ```
 
-### Useful Commands
+The service should now be running. After rebooting your Raspberry Pi, Intake will start automatically.
+
+#### 8.4: Useful Service Commands
 
 ```bash
 # View service status
 sudo systemctl status intake.service
 
+# View service logs
+sudo journalctl -u intake.service -f
+
 # Stop the service
 sudo systemctl stop intake.service
 
-# Start the service manually
+# Start the service
 sudo systemctl start intake.service
 
 # Restart the service
 sudo systemctl restart intake.service
 
-# View logs
-sudo journalctl -u intake.service -f
-
-# Disable auto-start (but don't stop)
+# Disable auto-start (but keep service file)
 sudo systemctl disable intake.service
 ```
-
-**Note:** For more detailed installation instructions and troubleshooting, see [INSTALLATION.md](INSTALLATION.md).
-
-## Configuration
-
-On first run, the application will prompt you to enter:
-- **Grocy Host**: The URL of your Grocy instance (e.g., `https://grocy.example.com`)
-- **API Key**: Your Grocy API key (found in Grocy under Settings > API keys)
-
-Configuration is saved to `config.json` in the project directory. This file is automatically ignored by git to protect your API key.
 
 ## Usage
 
@@ -343,32 +284,85 @@ If your scanner doesn't work automatically, you may need to:
 
 ## Troubleshooting
 
-### Scanner not working
-- Ensure the scanner is in keyboard emulation mode
-- Check USB connection
-- Try running with explicit input redirection: `python3 main.py < /dev/ttyUSB0`
+### Service not starting
 
-### Connection to Grocy fails
-- Verify your Grocy host URL is correct (include https://)
-- Check that your API key is valid
-- Ensure your Raspberry Pi can reach the Grocy server (network connectivity)
+1. **Check service status:**
+   ```bash
+   sudo systemctl status intake.service
+   ```
+
+2. **View logs for errors:**
+   ```bash
+   sudo journalctl -u intake.service -n 50
+   ```
+
+3. **Verify paths are correct:**
+   - Check that `/home/pi/grocy_scanner` exists
+   - Verify `venv` directory exists: `ls -la /home/pi/grocy_scanner/venv`
+   - Ensure script is executable: `ls -la /usr/local/bin/start-intake.sh`
+
+4. **Test script manually:**
+   ```bash
+   sudo -u pi /usr/local/bin/start-intake.sh
+   ```
 
 ### Display issues
 
 **Error: "no display name and no $DISPLAY"**
-- **Solution:** Set the DISPLAY environment variable:
-  ```bash
-  export DISPLAY=:0
-  python main.py
-  ```
-  Or use: `DISPLAY=:0 python main.py`
-- This error typically occurs when running from SSH or a terminal without a display session
-- If logged in directly on the Raspberry Pi desktop, `DISPLAY=:0` is usually not needed
+- **Solution:** The DISPLAY variable must be set. Ensure your startup script includes `export DISPLAY=:0`
+- If testing manually, use: `export DISPLAY=:0` before running `python main.py`
 
-**Other display issues:**
-- If the UI doesn't fit properly, you can exit fullscreen with `Escape` and resize
-- For better touch response, ensure your touchscreen drivers are properly installed
-- If connecting via SSH, ensure X11 forwarding is enabled or use `DISPLAY=:0`
+**X server not starting**
+- Verify X server is installed: `which X`
+- Check if X server is running: `ps aux | grep X`
+- Try starting manually: `X -nolisten tcp :0 &`
+
+### Scanner not working
+
+- Ensure the scanner is in keyboard emulation mode
+- Check USB connection: `lsusb`
+- Verify scanner is recognized: `dmesg | tail`
+
+### Connection to Grocy fails
+
+- Verify your Grocy host URL is correct (include https://)
+- Check that your API key is valid
+- Ensure your Raspberry Pi can reach the Grocy server (network connectivity)
+- Test connectivity: `ping grocy.example.com` (replace with your Grocy host)
+
+### Virtual environment issues
+
+**Error: "externally-managed-environment"**
+- This means you need to use a virtual environment
+- Follow Step 4 to create and activate the venv
+- Always activate venv before running: `source venv/bin/activate`
+
+**Packages not found**
+- Ensure venv is activated: `source venv/bin/activate`
+- Reinstall packages: `pip install -r requirements.txt`
+- Verify packages: `pip list`
+
+## Updating the Application
+
+To update Intake to the latest version:
+
+```bash
+# Stop the service
+sudo systemctl stop intake.service
+
+# Navigate to project directory
+cd ~/grocy_scanner
+
+# Pull latest changes
+git pull
+
+# Activate venv and update dependencies
+source venv/bin/activate
+pip install -r requirements.txt --upgrade
+
+# Restart the service
+sudo systemctl start intake.service
+```
 
 ## UI Customization
 
@@ -415,4 +409,4 @@ The project structure:
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request. 
+Contributions are welcome! Please feel free to submit a Pull Request.
