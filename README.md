@@ -149,18 +149,28 @@ If you prefer a full desktop environment (for example, for debugging or other ap
    ```
 
 4. **Run the application:**
+   
+   **Important:** If you're running from SSH or a terminal without a display, you need to set the DISPLAY variable:
+   
    ```bash
    # Make sure venv is activated
    source venv/bin/activate
+   
+   # For desktop environment (if running from SSH, use DISPLAY=:0)
+   export DISPLAY=:0
    python main.py
    ```
-
-   Or if you want to run it from stdin (for barcode scanner input):
+   
+   Or run it directly with DISPLAY set:
    ```bash
-   python3 main.py < /dev/ttyUSB0
+   source venv/bin/activate
+   DISPLAY=:0 python main.py
    ```
    
-   Note: The exact device path for your USB scanner may vary. Check `/dev/input/` or use `dmesg` after plugging in the scanner.
+   **Note:** 
+   - If you're logged in directly on the Raspberry Pi desktop, `DISPLAY=:0` is usually not needed
+   - If you're connecting via SSH, you must use `DISPLAY=:0` or `export DISPLAY=:0`
+   - The exact device path for your USB scanner may vary. Check `/dev/input/` or use `dmesg` after plugging in the scanner.
 
 ## Systemd Service (Auto-start on boot)
 
@@ -344,8 +354,21 @@ If your scanner doesn't work automatically, you may need to:
 - Ensure your Raspberry Pi can reach the Grocy server (network connectivity)
 
 ### Display issues
+
+**Error: "no display name and no $DISPLAY"**
+- **Solution:** Set the DISPLAY environment variable:
+  ```bash
+  export DISPLAY=:0
+  python main.py
+  ```
+  Or use: `DISPLAY=:0 python main.py`
+- This error typically occurs when running from SSH or a terminal without a display session
+- If logged in directly on the Raspberry Pi desktop, `DISPLAY=:0` is usually not needed
+
+**Other display issues:**
 - If the UI doesn't fit properly, you can exit fullscreen with `Escape` and resize
 - For better touch response, ensure your touchscreen drivers are properly installed
+- If connecting via SSH, ensure X11 forwarding is enabled or use `DISPLAY=:0`
 
 ## UI Customization
 

@@ -90,15 +90,33 @@ pip install -r requirements.txt
 ```
 
 **Let op:** Elke keer dat je de applicatie handmatig start, moet je eerst de venv activeren:
+
+**Voor Desktop versie (lokaal ingelogd):**
 ```bash
 source venv/bin/activate
 python main.py
 ```
 
+**Voor Desktop versie (via SSH):**
+```bash
+source venv/bin/activate
+export DISPLAY=:0
+python main.py
+```
+
+**Voor Lite versie (zonder desktop):**
+```bash
+source venv/bin/activate
+DISPLAY=:0 python main.py
+```
+
+**Belangrijk:** Als je de foutmelding "no display name and no $DISPLAY" krijgt, betekent dit dat de DISPLAY variabele niet is ingesteld. Gebruik `export DISPLAY=:0` of `DISPLAY=:0` voor het commando.
+
 ## Stap 6: Test de Installatie
 
 ### Voor Desktop versie:
 
+**Als je lokaal ingelogd bent op de Raspberry Pi:**
 ```bash
 # Test of alles werkt
 cd ~/grocy_scanner
@@ -110,7 +128,24 @@ source venv/bin/activate
 python main.py
 ```
 
+**Als je via SSH verbonden bent:**
+```bash
+# Test of alles werkt
+cd ~/grocy_scanner
+
+# Activeer virtual environment
+source venv/bin/activate
+
+# Stel DISPLAY in en start de applicatie
+export DISPLAY=:0
+python main.py
+```
+
 De applicatie zou moeten starten. Druk `Escape` om te sluiten.
+
+**Als je de foutmelding "no display name and no $DISPLAY" krijgt:**
+- Zorg dat je `export DISPLAY=:0` gebruikt voordat je `python main.py` uitvoert
+- Of gebruik: `DISPLAY=:0 python main.py`
 
 ### Voor Lite versie:
 
@@ -364,18 +399,27 @@ sudo systemctl disable intake.service
 1. **Test handmatig:**
    ```bash
    cd ~/grocy_scanner
-   python3 main.py
+   source venv/bin/activate
+   export DISPLAY=:0  # Als je via SSH verbonden bent
+   python main.py
    ```
 
-2. **Controleer Python dependencies:**
+2. **Controleer Python dependencies in venv:**
    ```bash
-   pip3 list | grep -E "requests|Pillow"
+   source venv/bin/activate
+   pip list | grep -E "requests|Pillow"
    ```
 
-3. **Herinstalleer dependencies:**
+3. **Herinstalleer dependencies in venv:**
    ```bash
-   pip3 install -r requirements.txt --force-reinstall
+   source venv/bin/activate
+   pip install -r requirements.txt --force-reinstall
    ```
+
+4. **Als je "no display name and no $DISPLAY" krijgt:**
+   - Zorg dat je `export DISPLAY=:0` gebruikt
+   - Of gebruik: `DISPLAY=:0 python main.py`
+   - Als je via SSH verbonden bent, is dit altijd nodig
 
 ## Veelvoorkomende Problemen
 
