@@ -33,7 +33,7 @@ sudo apt-get upgrade -y
 
 ```bash
 # Installeer Python en benodigde packages
-sudo apt-get install -y python3 python3-pip python3-tk python3-pil python3-pil.imagetk git
+sudo apt-get install -y python3 python3-pip python3-venv python3-tk python3-pil python3-pil.imagetk git
 ```
 
 ### Voor Raspberry Pi OS Lite (zonder Desktop):
@@ -45,6 +45,7 @@ sudo apt-get install -y \
     xinit \
     python3 \
     python3-pip \
+    python3-venv \
     python3-tk \
     python3-pil \
     python3-pil.imagetk \
@@ -70,14 +71,28 @@ git clone https://github.com/JesseFPV/grocy_scanner.git
 
 **Let op:** Pas de repository URL aan naar jouw eigen repository als je een fork hebt gemaakt.
 
-## Stap 5: Installeer Python Dependencies
+## Stap 5: Maak Virtual Environment en Installeer Dependencies
+
+**Belangrijk:** Nieuwere versies van Raspberry Pi OS gebruiken een "externally managed" Python omgeving. We moeten daarom een virtual environment gebruiken.
 
 ```bash
 # Navigeer naar project directory
 cd ~/grocy_scanner
 
-# Installeer Python packages
-pip3 install -r requirements.txt
+# Maak een virtual environment
+python3 -m venv venv
+
+# Activeer de virtual environment
+source venv/bin/activate
+
+# Installeer Python packages in de venv
+pip install -r requirements.txt
+```
+
+**Let op:** Elke keer dat je de applicatie handmatig start, moet je eerst de venv activeren:
+```bash
+source venv/bin/activate
+python main.py
 ```
 
 ## Stap 6: Test de Installatie
@@ -87,7 +102,12 @@ pip3 install -r requirements.txt
 ```bash
 # Test of alles werkt
 cd ~/grocy_scanner
-python3 main.py
+
+# Activeer virtual environment
+source venv/bin/activate
+
+# Start de applicatie
+python main.py
 ```
 
 De applicatie zou moeten starten. Druk `Escape` om te sluiten.
@@ -101,7 +121,12 @@ startx &
 # Wacht een paar seconden, dan start de applicatie
 sleep 3
 cd ~/grocy_scanner
-DISPLAY=:0 python3 main.py
+
+# Activeer virtual environment
+source venv/bin/activate
+
+# Start de applicatie (met X server)
+DISPLAY=:0 python main.py
 ```
 
 ## Stap 7: Configureer de Applicatie
@@ -140,13 +165,15 @@ Type=simple
 User=pi
 WorkingDirectory=/home/pi/grocy_scanner
 Environment=DISPLAY=:0
-ExecStart=/usr/bin/python3 /home/pi/grocy_scanner/main.py
+ExecStart=/home/pi/grocy_scanner/venv/bin/python /home/pi/grocy_scanner/main.py
 Restart=always
 RestartSec=10
 
 [Install]
 WantedBy=graphical.target
 ```
+
+**Belangrijk:** Zorg dat `ExecStart` verwijst naar de Python executable in de venv (`venv/bin/python`), niet naar de systeem Python.
 
 **Belangrijk:** 
 - Vervang `pi` met jouw gebruikersnaam als die anders is
@@ -191,8 +218,9 @@ export DISPLAY=:0
 # Navigeer naar project directory
 cd /home/pi/grocy_scanner  # Pas aan naar jouw pad
 
-# Start de applicatie
-/usr/bin/python3 main.py
+# Activeer virtual environment en start de applicatie
+source venv/bin/activate
+python main.py
 ```
 
 Maak het script uitvoerbaar:
@@ -220,6 +248,7 @@ User=pi
 ExecStart=/usr/local/bin/start-intake.sh
 Restart=always
 RestartSec=10
+Environment=DISPLAY=:0
 
 [Install]
 WantedBy=multi-user.target
@@ -352,23 +381,52 @@ sudo systemctl disable intake.service
 
 ### Probleem: "Permission denied" bij service start
 
-**Oplossing:** Zorg dat het script uitvoerbaar is:
+**Oplossing:** 
+1. Zorg dat het script uitvoerbaar is:
+   ```bash
+   sudo chmod +x /usr/local/bin/start-intake.sh
+   ```
+2. Controleer of venv bestaat en toegankelijk is:
+   ```bash
+   ls -la ~/grocy_scanner/venv/bin/python
+   ```
+
+### Probleem: "externally-managed-environment" error bij pip install
+
+**Oplossing:** Dit betekent dat je een virtual environment moet gebruiken. Volg Stap 5 opnieuw:
 ```bash
-sudo chmod +x /usr/local/bin/start-intake.sh
+cd ~/grocy_scanner
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
 ### Probleem: Service start maar applicatie verschijnt niet
 
-**Oplossing:** Controleer of DISPLAY correct is ingesteld:
-- Voor Desktop: `Environment=DISPLAY=:0`
-- Voor Lite: Zorg dat X server draait voordat applicatie start
+**Oplossing:** 
+1. Controleer of DISPLAY correct is ingesteld:
+   - Voor Desktop: `Environment=DISPLAY=:0`
+   - Voor Lite: Zorg dat X server draait voordat applicatie start
+2. Controleer of het venv pad correct is in ExecStart:
+   - Moet zijn: `/home/pi/grocy_scanner/venv/bin/python`
+   - Niet: `/usr/bin/python3`
 
 ### Probleem: Service crasht direct na start
 
 **Oplossing:** 
 1. Bekijk logs: `sudo journalctl -u intake.service -n 50`
-2. Test handmatig: `cd ~/grocy_scanner && python3 main.py`
-3. Controleer of alle dependencies geïnstalleerd zijn
+2. Test handmatig: 
+   ```bash
+   cd ~/grocy_scanner
+   source venv/bin/activate
+   python main.py
+   ```
+3. Controleer of venv bestaat: `ls -la ~/grocy_scanner/venv/bin/python`
+4. Controleer of alle dependencies geïnstalleerd zijn in de venv:
+   ```bash
+   source venv/bin/activate
+   pip list
+   ```
 
 ## Aanpassen van Configuratie
 

@@ -3,7 +3,10 @@
 # Then run: sudo systemctl enable intake.service
 #          sudo systemctl start intake.service
 #
-# Zie INSTALLATION.md voor volledige installatie instructies
+# See INSTALLATION.md for complete installation instructions
+#
+# IMPORTANT: This service file uses the virtual environment Python.
+# Make sure you have created the venv before using this service file.
 
 [Unit]
 Description=Intake Application
@@ -14,7 +17,7 @@ Type=simple
 User=pi
 WorkingDirectory=/home/pi/grocy_scanner
 Environment=DISPLAY=:0
-ExecStart=/usr/bin/python3 /home/pi/grocy_scanner/main.py
+ExecStart=/home/pi/grocy_scanner/venv/bin/python /home/pi/grocy_scanner/main.py
 Restart=always
 RestartSec=10
 

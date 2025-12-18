@@ -28,11 +28,12 @@ A Raspberry Pi-based barcode scanner interface for Grocy inventory management. T
 **For complete installation instructions, see [INSTALLATION.md](INSTALLATION.md)**
 
 Quick overview:
-1. Install system packages: `sudo apt-get install python3 python3-pip python3-tk python3-pil git`
+1. Install system packages: `sudo apt-get install python3 python3-pip python3-venv python3-tk python3-pil git`
 2. Clone repository: `git clone https://github.com/JesseFPV/grocy_scanner.git`
-3. Install dependencies: `pip3 install -r requirements.txt`
-4. Start application: `python3 main.py`
-5. Configure auto-start: See [Systemd Service](#systemd-service-auto-start-on-boot) section below or [INSTALLATION.md](INSTALLATION.md) for detailed instructions
+3. Create virtual environment: `python3 -m venv venv`
+4. Activate venv and install dependencies: `source venv/bin/activate && pip install -r requirements.txt`
+5. Start application: `source venv/bin/activate && python main.py`
+6. Configure auto-start: See [Systemd Service](#systemd-service-auto-start-on-boot) section below or [INSTALLATION.md](INSTALLATION.md) for detailed instructions
 
 ## Raspberry Pi OS Installation
 
@@ -68,8 +69,8 @@ sudo apt-get install -y \
     xinput \
     x11-xserver-utils
 
-# Install Python pip if not already installed
-sudo apt-get install -y python3-pip
+# Install Python pip and venv if not already installed
+sudo apt-get install -y python3-pip python3-venv
 ```
 
 **Step 3: Configure auto-start (optional)**
@@ -94,17 +95,30 @@ startx
 # Press Ctrl+Alt+F1 to return to terminal when X starts
 ```
 
-**Step 5: Start the application**
+**Step 5: Create virtual environment and install dependencies**
 
 ```bash
 # Navigate to project directory
 cd grocy_scanner
 
+# Create virtual environment
+python3 -m venv venv
+
+# Activate virtual environment
+source venv/bin/activate
+
 # Install Python dependencies
-pip3 install -r requirements.txt
+pip install -r requirements.txt
+```
+
+**Step 6: Start the application**
+
+```bash
+# Activate virtual environment (if not already active)
+source venv/bin/activate
 
 # Start the application (with X server)
-DISPLAY=:0 python3 main.py
+DISPLAY=:0 python main.py
 ```
 
 ### Alternative: Full Install (With Desktop)
@@ -123,19 +137,22 @@ If you prefer a full desktop environment (for example, for debugging or other ap
    cd grocy_scanner
    ```
 
-2. **Install dependencies:**
+2. **Create virtual environment:**
    ```bash
-   pip3 install -r requirements.txt
+   python3 -m venv venv
    ```
 
-3. **Make main.py executable:**
+3. **Activate virtual environment and install dependencies:**
    ```bash
-   chmod +x main.py
+   source venv/bin/activate
+   pip install -r requirements.txt
    ```
 
 4. **Run the application:**
    ```bash
-   python3 main.py
+   # Make sure venv is activated
+   source venv/bin/activate
+   python main.py
    ```
 
    Or if you want to run it from stdin (for barcode scanner input):
@@ -164,7 +181,7 @@ sudo nano /etc/systemd/system/intake.service
 Make sure to adjust the following in the service file:
 - `User=pi` - Change to your username if different
 - `WorkingDirectory=/home/pi/grocy_scanner` - Change to your project path
-- `ExecStart=/usr/bin/python3 /home/pi/grocy_scanner/main.py` - Adjust path if needed
+- `ExecStart=/home/pi/grocy_scanner/venv/bin/python /home/pi/grocy_scanner/main.py` - Use venv Python, adjust path if needed
 
 Then enable and start the service:
 
@@ -207,8 +224,9 @@ export DISPLAY=:0
 # Navigate to project directory
 cd /home/pi/grocy_scanner  # Adjust to your path
 
-# Start the application
-/usr/bin/python3 main.py
+# Activate virtual environment and start the application
+source venv/bin/activate
+python main.py
 ```
 
 Make it executable:
