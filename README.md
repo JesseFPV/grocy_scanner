@@ -50,6 +50,7 @@ sudo apt-get upgrade -y
 sudo apt-get install -y \
     xserver-xorg \
     xinit \
+    xvfb \
     python3 \
     python3-pip \
     python3-venv \
@@ -195,8 +196,17 @@ if pgrep -f "X.*:0" > /dev/null; then
 fi
 
 # Start X server on display :0
+# For headless operation, we need to use Xvfb or start X with vtXX
+# First, try to find an available virtual terminal
 log "Starting X server on display :0"
-X -nolisten tcp :0 >> "$LOG_FILE" 2>&1 &
+
+# Try to start X server with explicit vt (virtual terminal)
+# This works better for headless/SSH setups
+VT_NUM=$(fgconsole 2>/dev/null || echo "7")
+log "Using virtual terminal: $VT_NUM"
+
+# Start X server with explicit vt and no tty requirement
+X :0 -nolisten tcp vt$VT_NUM -ac -nolock -dpi 96 >> "$LOG_FILE" 2>&1 &
 X_PID=$!
 
 # Wait for X server to be ready
@@ -205,22 +215,42 @@ sleep 5
 
 # Check if X server process is still running
 if ! ps -p $X_PID > /dev/null 2>&1; then
-    log "ERROR: X server process died immediately after start"
-    log "X server output:"
-    tail -20 "$LOG_FILE" >> "$LOG_FILE"
-    exit 1
+    log "WARNING: X server process may have exited, checking if X is running..."
+    # Check if any X process is running on display :0
+    if ! pgrep -f "X.*:0" > /dev/null; then
+        log "ERROR: X server failed to start"
+        log "Attempting alternative method with Xvfb..."
+        # Try Xvfb as fallback (virtual framebuffer)
+        if command -v Xvfb > /dev/null 2>&1; then
+            Xvfb :0 -screen 0 1024x768x24 >> "$LOG_FILE" 2>&1 &
+            sleep 3
+            if ! DISPLAY=:0 xdpyinfo > /dev/null 2>&1; then
+                log "ERROR: Xvfb also failed to start"
+                exit 1
+            fi
+            log "Xvfb started successfully as fallback"
+        else
+            log "ERROR: X server failed and Xvfb not available"
+            log "Install Xvfb with: sudo apt-get install xvfb"
+            exit 1
+        fi
+    else
+        log "X server is running (different PID)"
+    fi
+else
+    log "X server started successfully with PID: $X_PID"
 fi
 
 # Verify X server is actually responding
 log "Verifying X server is responding"
 if ! DISPLAY=:0 xdpyinfo > /dev/null 2>&1; then
     log "ERROR: X server is not responding on display :0"
-    log "X server PID: $X_PID"
-    ps aux | grep X >> "$LOG_FILE" 2>&1
+    log "X processes:"
+    ps aux | grep -E "[X]|Xvfb" >> "$LOG_FILE" 2>&1
     exit 1
 fi
 
-log "X server started successfully with PID: $X_PID"
+log "X server verified and responding"
 
 # Set DISPLAY variable
 export DISPLAY=:0
@@ -462,9 +492,37 @@ If your scanner doesn't work automatically, you may need to:
 - If testing manually, use: `export DISPLAY=:0` before running `python main.py`
 
 **X server not starting**
-- Verify X server is installed: `which X`
-- Check if X server is running: `ps aux | grep X`
-- Try starting manually: `X -nolisten tcp :0 &`
+
+This is common when running via SSH. The X server needs access to `/dev/tty0` which requires console access.
+
+**Solution 1: Use Xvfb (Virtual Framebuffer) - Recommended for headless**
+```bash
+# Install Xvfb if not already installed
+sudo apt-get install xvfb
+
+# Test Xvfb manually
+Xvfb :0 -screen 0 1024x768x24 &
+sleep 2
+DISPLAY=:0 xdpyinfo
+```
+
+**Solution 2: Start X server with explicit virtual terminal**
+```bash
+# Find available VT
+fgconsole
+
+# Start X with explicit VT (replace 7 with your VT number)
+X :0 -nolisten tcp vt7 -ac -nolock &
+```
+
+**Solution 3: Add user to video/tty groups**
+```bash
+sudo usermod -a -G video,tty pi
+# Then logout and login again
+```
+
+**Solution 4: Use the improved startup script**
+The startup script in the README now tries multiple methods automatically, including Xvfb as fallback.
 
 ### Scanner not working
 
