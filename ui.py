@@ -1720,7 +1720,6 @@ class GrocyScannerUI:
             item_frame = tk.Frame(
                 self.search_results_frame, 
                 bg=Theme.BUTTON_CONFIG, 
-,
                 relief=tk.RAISED,
                 borderwidth=2
             )
@@ -1750,7 +1749,6 @@ class GrocyScannerUI:
                 font=Theme.get_info_font(),
                 bg=Theme.BUTTON_CONFIG,
                 fg='white',
-,
                 wraplength=150,
                 justify=tk.CENTER
             )
