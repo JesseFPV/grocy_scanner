@@ -23,37 +23,37 @@ A Raspberry Pi-based barcode scanner interface for Grocy inventory management. T
 - Raspberry Pi OS (latest version recommended)
 - Python 3.7 or higher
 
-## Quick Start - Installatie
+## Quick Start - Installation
 
-**Voor volledige installatie-instructies, zie [INSTALLATION.md](INSTALLATION.md)**
+**For complete installation instructions, see [INSTALLATION.md](INSTALLATION.md)**
 
-Kort overzicht:
-1. Installeer systeem packages: `sudo apt-get install python3 python3-pip python3-tk python3-pil git`
+Quick overview:
+1. Install system packages: `sudo apt-get install python3 python3-pip python3-tk python3-pil git`
 2. Clone repository: `git clone https://github.com/JesseFPV/grocy_scanner.git`
-3. Installeer dependencies: `pip3 install -r requirements.txt`
-4. Start applicatie: `python3 main.py`
-5. Configureer auto-start: Zie [INSTALLATION.md](INSTALLATION.md) sectie "Stap 8"
+3. Install dependencies: `pip3 install -r requirements.txt`
+4. Start application: `python3 main.py`
+5. Configure auto-start: See [INSTALLATION.md](INSTALLATION.md) section "Step 8"
 
 ## Raspberry Pi OS Installation
 
 ### Recommended: Light Install (Without Desktop)
 
-Voor een Raspberry Pi die alleen deze applicatie draait, is een **Light installatie zonder desktop** aanbevolen. Dit bespaart resources en boott sneller.
+For a Raspberry Pi that only runs this application, a **Light installation without desktop** is recommended. This saves resources and boots faster.
 
-**Stap 1: Installeer Raspberry Pi OS Light**
-- Download Raspberry Pi OS Lite (zonder desktop) van [raspberrypi.org](https://www.raspberrypi.org/software/)
-- Flash naar SD kaart met Raspberry Pi Imager
-- Maak SSH aan en configureer WiFi (optioneel)
+**Step 1: Install Raspberry Pi OS Light**
+- Download Raspberry Pi OS Lite (without desktop) from [raspberrypi.org](https://www.raspberrypi.org/software/)
+- Flash to SD card using Raspberry Pi Imager
+- Enable SSH and configure WiFi (optional)
 
-**Stap 2: Installeer benodigde system packages**
+**Step 2: Install required system packages**
 
-Na eerste boot en login, installeer de benodigde packages voor Tkinter en X11:
+After first boot and login, install the required packages for Tkinter and X11:
 
 ```bash
 # Update package list
 sudo apt-get update
 
-# Installeer X server en Tkinter dependencies
+# Install X server and Tkinter dependencies
 sudo apt-get install -y \
     xserver-xorg \
     xinit \
@@ -63,57 +63,57 @@ sudo apt-get install -y \
     libxss1 \
     libgconf-2-4
 
-# Voor touchscreen support (meestal al aanwezig, maar voor de zekerheid)
+# For touchscreen support (usually already present, but to be sure)
 sudo apt-get install -y \
     xinput \
     x11-xserver-utils
 
-# Installeer Python pip als het nog niet geïnstalleerd is
+# Install Python pip if not already installed
 sudo apt-get install -y python3-pip
 ```
 
-**Stap 3: Configureer auto-start (optioneel)**
+**Step 3: Configure auto-start (optional)**
 
-Als je de applicatie automatisch wilt starten bij boot, zie de [Systemd Service](#systemd-service) sectie hieronder.
+If you want the application to start automatically on boot, see the [Systemd Service](#systemd-service) section below.
 
-**Belangrijke notities voor Light installatie:**
+**Important notes for Light installation:**
 
-- Je hebt een **X server** nodig voor Tkinter GUI (dit is geïnstalleerd in stap 2)
-- De applicatie moet draaien met `DISPLAY=:0` om de touchscreen te gebruiken
-- Voor auto-start bij boot moet je een X server starten (zie systemd service sectie)
-- Touchscreen drivers worden meestal automatisch gedetecteerd door Raspberry Pi OS
+- You need an **X server** for Tkinter GUI (this is installed in step 2)
+- The application must run with `DISPLAY=:0` to use the touchscreen
+- For auto-start on boot, you need to start an X server (see systemd service section)
+- Touchscreen drivers are usually automatically detected by Raspberry Pi OS
 
-**Stap 4: Test de installatie**
+**Step 4: Test the installation**
 
 ```bash
-# Test of Tkinter werkt
-python3 -c "import tkinter; print('Tkinter werkt!')"
+# Test if Tkinter works
+python3 -c "import tkinter; print('Tkinter works!')"
 
 # Test X server (start X server)
 startx
-# Druk Ctrl+Alt+F1 om terug te gaan naar terminal als X start
+# Press Ctrl+Alt+F1 to return to terminal when X starts
 ```
 
-**Stap 5: Start de applicatie**
+**Step 5: Start the application**
 
 ```bash
-# Navigeer naar project directory
+# Navigate to project directory
 cd grocy_scanner
 
-# Installeer Python dependencies
+# Install Python dependencies
 pip3 install -r requirements.txt
 
-# Start de applicatie (met X server)
+# Start the application (with X server)
 DISPLAY=:0 python3 main.py
 ```
 
-### Alternative: Full Install (Met Desktop)
+### Alternative: Full Install (With Desktop)
 
-Als je liever een volledige desktop omgeving hebt (bijvoorbeeld voor debugging of andere applicaties):
+If you prefer a full desktop environment (for example, for debugging or other applications):
 
-- Installeer Raspberry Pi OS met Desktop
-- Tkinter is meestal al geïnstalleerd
-- Volg de normale installatie stappen hieronder
+- Install Raspberry Pi OS with Desktop
+- Tkinter is usually already installed
+- Follow the normal installation steps below
 
 ## Installation
 
@@ -221,41 +221,41 @@ from themes.dark_blue_theme import DarkBlueTheme as Theme
 
 **Note:** The Portal theme is currently active by default and uses the Rajdhani font for a modern, futuristic look.
 
-## Systemd Service (Auto-start bij boot)
+## Systemd Service (Auto-start on boot)
 
-Voor een **Light installatie zonder desktop**, moet je eerst een X server starten. Hier is een complete setup:
+For a **Light installation without desktop**, you need to start an X server first. Here is a complete setup:
 
-**1. Maak een X server startup script:**
+**1. Create an X server startup script:**
 
 ```bash
-# Maak een script om X server te starten
+# Create a script to start X server
 sudo nano /usr/local/bin/start-x.sh
 ```
 
-Voeg dit toe:
+Add this content:
 ```bash
 #!/bin/bash
-# Start X server op display :0
+# Start X server on display :0
 X -nolisten tcp :0 &
 sleep 2
-# Start de applicatie
+# Start the application
 export DISPLAY=:0
-cd /home/pi/grocy_scanner  # Pas aan naar jouw pad
+cd /home/pi/grocy_scanner  # Adjust to your path
 python3 main.py
 ```
 
-Maak het uitvoerbaar:
+Make it executable:
 ```bash
 sudo chmod +x /usr/local/bin/start-x.sh
 ```
 
-**2. Maak een systemd service:**
+**2. Create a systemd service:**
 
 ```bash
-sudo nano /etc/systemd/system/grocy-scanner.service
+sudo nano /etc/systemd/system/intake.service
 ```
 
-Voeg dit toe (pas paden aan naar jouw situatie):
+Add this content (adjust paths to your situation):
 ```ini
 [Unit]
 Description=Intake Application
@@ -273,32 +273,32 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-**3. Activeer en start de service:**
+**3. Enable and start the service:**
 
 ```bash
-# Herlaad systemd
+# Reload systemd
 sudo systemctl daemon-reload
 
-# Activeer service (start bij boot)
-sudo systemctl enable grocy-scanner.service
+# Enable service (start on boot)
+sudo systemctl enable intake.service
 
-# Start de service nu
-sudo systemctl start grocy-scanner.service
+# Start the service now
+sudo systemctl start intake.service
 
 # Check status
-sudo systemctl status grocy-scanner.service
+sudo systemctl status intake.service
 ```
 
-**Voor Full installatie (met desktop):**
+**For Full installation (with desktop):**
 
-Als je een desktop omgeving hebt, gebruik dan het voorbeeld service bestand (`grocy-scanner.service.example`) en pas het pad aan:
+If you have a desktop environment, use the example service file (`grocy-scanner.service.example`) and adjust the path:
 
 ```bash
-sudo cp grocy-scanner.service.example /etc/systemd/system/grocy-scanner.service
-sudo nano /etc/systemd/system/grocy-scanner.service  # Pas paden aan
+sudo cp grocy-scanner.service.example /etc/systemd/system/intake.service
+sudo nano /etc/systemd/system/intake.service  # Adjust paths
 sudo systemctl daemon-reload
-sudo systemctl enable grocy-scanner.service
-sudo systemctl start grocy-scanner.service
+sudo systemctl enable intake.service
+sudo systemctl start intake.service
 ```
 
 ## Development
