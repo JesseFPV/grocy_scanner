@@ -32,7 +32,7 @@ Quick overview:
 2. Clone repository: `git clone https://github.com/JesseFPV/grocy_scanner.git`
 3. Install dependencies: `pip3 install -r requirements.txt`
 4. Start application: `python3 main.py`
-5. Configure auto-start: See [INSTALLATION.md](INSTALLATION.md) section "Step 8"
+5. Configure auto-start: See [Systemd Service](#systemd-service-auto-start-on-boot) section below or [INSTALLATION.md](INSTALLATION.md) for detailed instructions
 
 ## Raspberry Pi OS Installation
 
@@ -145,6 +145,142 @@ If you prefer a full desktop environment (for example, for debugging or other ap
    
    Note: The exact device path for your USB scanner may vary. Check `/dev/input/` or use `dmesg` after plugging in the scanner.
 
+## Systemd Service (Auto-start on boot)
+
+To automatically start Intake when your Raspberry Pi boots, you can set up a systemd service. This is especially useful for dedicated scanner stations.
+
+### Option A: With Desktop Environment (Recommended for beginners)
+
+If you have a desktop environment, use the example service file:
+
+```bash
+# Copy the example service file
+sudo cp grocy-scanner.service.example /etc/systemd/system/intake.service
+
+# Edit the service file to adjust paths
+sudo nano /etc/systemd/system/intake.service
+```
+
+Make sure to adjust the following in the service file:
+- `User=pi` - Change to your username if different
+- `WorkingDirectory=/home/pi/grocy_scanner` - Change to your project path
+- `ExecStart=/usr/bin/python3 /home/pi/grocy_scanner/main.py` - Adjust path if needed
+
+Then enable and start the service:
+
+```bash
+# Reload systemd configuration
+sudo systemctl daemon-reload
+
+# Enable service (start automatically on boot)
+sudo systemctl enable intake.service
+
+# Start the service now
+sudo systemctl start intake.service
+
+# Check status
+sudo systemctl status intake.service
+```
+
+### Option B: Without Desktop (Lite installation)
+
+For a Lite installation without desktop, you need to start an X server first:
+
+**1. Create an X server startup script:**
+
+```bash
+# Create the script
+sudo nano /usr/local/bin/start-intake.sh
+```
+
+Add this content (adjust paths to your situation):
+
+```bash
+#!/bin/bash
+# Start X server on display :0
+X -nolisten tcp :0 &
+sleep 3
+
+# Wait for X server to be ready
+export DISPLAY=:0
+
+# Navigate to project directory
+cd /home/pi/grocy_scanner  # Adjust to your path
+
+# Start the application
+/usr/bin/python3 main.py
+```
+
+Make it executable:
+
+```bash
+sudo chmod +x /usr/local/bin/start-intake.sh
+```
+
+**2. Create a systemd service:**
+
+```bash
+sudo nano /etc/systemd/system/intake.service
+```
+
+Add this content (adjust paths to your situation):
+
+```ini
+[Unit]
+Description=Intake Application
+After=network.target
+
+[Service]
+Type=simple
+User=pi
+ExecStart=/usr/local/bin/start-intake.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+```
+
+**3. Enable and start the service:**
+
+```bash
+# Reload systemd
+sudo systemctl daemon-reload
+
+# Enable service (start on boot)
+sudo systemctl enable intake.service
+
+# Start the service now
+sudo systemctl start intake.service
+
+# Check status
+sudo systemctl status intake.service
+```
+
+### Useful Commands
+
+```bash
+# View service status
+sudo systemctl status intake.service
+
+# Stop the service
+sudo systemctl stop intake.service
+
+# Start the service manually
+sudo systemctl start intake.service
+
+# Restart the service
+sudo systemctl restart intake.service
+
+# View logs
+sudo journalctl -u intake.service -f
+
+# Disable auto-start (but don't stop)
+sudo systemctl disable intake.service
+```
+
+**Note:** For more detailed installation instructions and troubleshooting, see [INSTALLATION.md](INSTALLATION.md).
+
 ## Configuration
 
 On first run, the application will prompt you to enter:
@@ -220,86 +356,6 @@ from themes.dark_blue_theme import DarkBlueTheme as Theme
 ```
 
 **Note:** The Portal theme is currently active by default and uses the Rajdhani font for a modern, futuristic look.
-
-## Systemd Service (Auto-start on boot)
-
-For a **Light installation without desktop**, you need to start an X server first. Here is a complete setup:
-
-**1. Create an X server startup script:**
-
-```bash
-# Create a script to start X server
-sudo nano /usr/local/bin/start-x.sh
-```
-
-Add this content:
-```bash
-#!/bin/bash
-# Start X server on display :0
-X -nolisten tcp :0 &
-sleep 2
-# Start the application
-export DISPLAY=:0
-cd /home/pi/grocy_scanner  # Adjust to your path
-python3 main.py
-```
-
-Make it executable:
-```bash
-sudo chmod +x /usr/local/bin/start-x.sh
-```
-
-**2. Create a systemd service:**
-
-```bash
-sudo nano /etc/systemd/system/intake.service
-```
-
-Add this content (adjust paths to your situation):
-```ini
-[Unit]
-Description=Intake Application
-After=network.target
-
-[Service]
-Type=simple
-User=pi
-WorkingDirectory=/home/pi/grocy_scanner
-ExecStart=/usr/local/bin/start-x.sh
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
-
-**3. Enable and start the service:**
-
-```bash
-# Reload systemd
-sudo systemctl daemon-reload
-
-# Enable service (start on boot)
-sudo systemctl enable intake.service
-
-# Start the service now
-sudo systemctl start intake.service
-
-# Check status
-sudo systemctl status intake.service
-```
-
-**For Full installation (with desktop):**
-
-If you have a desktop environment, use the example service file (`grocy-scanner.service.example`) and adjust the path:
-
-```bash
-sudo cp grocy-scanner.service.example /etc/systemd/system/intake.service
-sudo nano /etc/systemd/system/intake.service  # Adjust paths
-sudo systemctl daemon-reload
-sudo systemctl enable intake.service
-sudo systemctl start intake.service
-```
 
 ## Development
 
