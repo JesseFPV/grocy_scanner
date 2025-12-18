@@ -11,6 +11,7 @@ import base64
 from config import Config
 from grocy_api import GrocyAPI
 from onscreen_keyboard import OnScreenKeyboard
+from icon_loader import get_icon_loader
 # from theme import Theme
 # Portal theme - modern Aperture Science style
 from themes.portal_theme import PortalTheme as Theme
@@ -188,9 +189,9 @@ class GrocyScannerUI:
             if not self.grocy_api.test_connection():
                 messagebox.showerror("Connection Error", 
                                     "Could not connect to Grocy. Please check your configuration.")
-                self.show_config_dialog()
+                self._setup_config_page()
         else:
-            self.show_config_dialog()
+            self._setup_config_page()
     
     def setup_ui(self):
         """Setup the main UI components."""
@@ -202,6 +203,7 @@ class GrocyScannerUI:
         self.current_page = 'main'
         self.search_page_frame: Optional[tk.Frame] = None
         self.product_detail_frame: Optional[tk.Frame] = None
+        self.config_page_frame: Optional[tk.Frame] = None
         self.search_results: list = []
         self.hide_out_of_stock: bool = False  # Toggle for hiding out-of-stock products
         self.selected_product_group: Optional[int] = None  # Selected product group filter
@@ -217,6 +219,9 @@ class GrocyScannerUI:
         if self.product_detail_frame:
             self.product_detail_frame.destroy()
             self.product_detail_frame = None
+        if self.config_page_frame:
+            self.config_page_frame.destroy()
+            self.config_page_frame = None
     
     def _setup_main_page(self):
         """Setup the main scanning page."""
@@ -242,16 +247,27 @@ class GrocyScannerUI:
         )
         self.search_entry.pack(side=tk.LEFT, padx=5, pady=5, fill=tk.X, expand=True)
         
-        search_button = tk.Label(
-            self.search_frame,
-            text="🔍",
-            font=('Arial', 20),
-            bg=Theme.BUTTON_ADD,
-            fg='white',
-            cursor='hand2',
-            width=3,
-            height=1
-        )
+        # Search icon
+        icon_loader = get_icon_loader()
+        search_icon = icon_loader.load_icon('search', size=(24, 24), color='white')
+        if search_icon:
+            search_button = tk.Label(
+                self.search_frame,
+                image=search_icon,
+                bg=Theme.BUTTON_ADD,
+                cursor='hand2'
+            )
+            search_button.image = search_icon  # Keep reference
+        else:
+            # Fallback to text if icon not available
+            search_button = tk.Label(
+                self.search_frame,
+                text="SEARCH",
+                font=Theme.get_config_font(),
+                bg=Theme.BUTTON_ADD,
+                fg='white',
+                cursor='hand2'
+            )
         search_button.pack(side=tk.LEFT, padx=5)
         search_button.bind('<Button-1>', lambda e: self._perform_search())
         
@@ -423,16 +439,26 @@ class GrocyScannerUI:
         search_icon_frame.pack(side=tk.LEFT, padx=10)
         
         search_icon_bg = tk.Frame(search_icon_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
-        search_icon = tk.Label(
-            search_icon_bg,
-            text="🔍",
-            font=('Arial', 20),
-            bg=Theme.BUTTON_CONFIG,
-            fg='white',
-            cursor='hand2',
-            width=3,
-            height=1
-        )
+        icon_loader = get_icon_loader()
+        search_icon_img = icon_loader.load_icon('search', size=(24, 24), color='white')
+        if search_icon_img:
+            search_icon = tk.Label(
+                search_icon_bg,
+                image=search_icon_img,
+                bg=Theme.BUTTON_CONFIG,
+                cursor='hand2'
+            )
+            search_icon.image = search_icon_img  # Keep reference
+        else:
+            # Fallback to text if icon not available
+            search_icon = tk.Label(
+                search_icon_bg,
+                text="SEARCH",
+                font=Theme.get_config_font(),
+                bg=Theme.BUTTON_CONFIG,
+                fg='white',
+                cursor='hand2'
+            )
         search_icon.pack(padx=8, pady=5)
         search_icon_bg.pack()
         
@@ -457,22 +483,32 @@ class GrocyScannerUI:
         config_button_frame.pack(side=tk.RIGHT, padx=10)
         
         config_bg_frame = tk.Frame(config_button_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
-        config_button = tk.Label(
-            config_bg_frame,
-            text="⚙️",
-            font=('Arial', 20),
-            bg=Theme.BUTTON_CONFIG,
-            fg='white',
-            cursor='hand2',
-            width=3,
-            height=1
-        )
+        icon_loader = get_icon_loader()
+        settings_icon_img = icon_loader.load_icon('settings', size=(24, 24), color='white')
+        if settings_icon_img:
+            config_button = tk.Label(
+                config_bg_frame,
+                image=settings_icon_img,
+                bg=Theme.BUTTON_CONFIG,
+                cursor='hand2'
+            )
+            config_button.image = settings_icon_img  # Keep reference
+        else:
+            # Fallback to text if icon not available
+            config_button = tk.Label(
+                config_bg_frame,
+                text="CONFIG",
+                font=Theme.get_config_font(),
+                bg=Theme.BUTTON_CONFIG,
+                fg='white',
+                cursor='hand2'
+            )
         config_button.pack(padx=8, pady=5)
         config_bg_frame.pack()
         
         # Bind click events
-        config_button.bind('<Button-1>', lambda e: self.show_config_dialog())
-        config_bg_frame.bind('<Button-1>', lambda e: self.show_config_dialog())
+        config_button.bind('<Button-1>', lambda e: self._setup_config_page())
+        config_bg_frame.bind('<Button-1>', lambda e: self._setup_config_page())
         
         # Hover effect for config button
         def config_enter(e): 
@@ -553,114 +589,215 @@ class GrocyScannerUI:
         self.image_label.config(image='')
         self.info_label.config(text="")
     
-    def show_config_dialog(self):
-        """Show configuration dialog."""
-        dialog = tk.Toplevel(self.root)
-        dialog.title("Configuration")
-        dialog.configure(bg=Theme.BACKGROUND)
-        dialog.attributes('-topmost', True)
-        dialog.grab_set()
+    def _setup_config_page(self):
+        """Setup the configuration page as a full view."""
+        # Hide main page widgets
+        for widget in self.main_frame.winfo_children():
+            widget.pack_forget()
         
-        # Center dialog
-        dialog.geometry("700x400")
-        dialog.transient(self.root)
+        # Create config page frame
+        self.config_page_frame = tk.Frame(self.main_frame, bg=Theme.BACKGROUND)
+        self.config_page_frame.pack(fill=tk.BOTH, expand=True)
         
-        # Create keyboard for dialog
-        dialog_keyboard = OnScreenKeyboard(dialog)
+        # Header with back button
+        header_frame = tk.Frame(self.config_page_frame, bg=Theme.BACKGROUND)
+        header_frame.pack(fill=tk.X, pady=20, padx=20)
         
-        # Host entry
-        tk.Label(
-            dialog,
+        # Back button
+        back_frame = tk.Frame(header_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
+        icon_loader = get_icon_loader()
+        back_icon_img = icon_loader.load_icon('arrow_left', size=(20, 20), color='white')
+        if back_icon_img:
+            back_icon_label = tk.Label(
+                back_frame,
+                image=back_icon_img,
+                bg=Theme.BUTTON_CONFIG,
+                cursor='hand2'
+            )
+            back_icon_label.image = back_icon_img  # Keep reference
+            back_icon_label.pack(side=tk.LEFT, padx=(10, 5), pady=8)
+        back_label = tk.Label(
+            back_frame,
+            text="BACK",
+            font=Theme.get_config_font(),
+            bg=Theme.BUTTON_CONFIG,
+            fg='white',
+            cursor='hand2'
+        )
+        back_label.pack(side=tk.LEFT, padx=(0, 10), pady=8)
+        back_frame.pack(side=tk.LEFT)
+        back_label.bind('<Button-1>', lambda e: self._setup_main_page())
+        back_frame.bind('<Button-1>', lambda e: self._setup_main_page())
+        if back_icon_img:
+            back_icon_label.bind('<Button-1>', lambda e: self._setup_main_page())
+        
+        # Hover effect for back button
+        def back_enter(e): 
+            back_frame.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#666666'))
+            back_label.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#666666'))
+        def back_leave(e): 
+            back_frame.config(bg=Theme.BUTTON_CONFIG)
+            back_label.config(bg=Theme.BUTTON_CONFIG)
+        back_label.bind('<Enter>', back_enter)
+        back_label.bind('<Leave>', back_leave)
+        back_frame.bind('<Enter>', back_enter)
+        back_frame.bind('<Leave>', back_leave)
+        
+        # Title
+        title_label = tk.Label(
+            header_frame,
+            text="CONFIGURATION",
+            font=Theme.get_title_font(),
+            bg=Theme.BACKGROUND,
+            fg=Theme.TEXT_PRIMARY
+        )
+        title_label.pack(side=tk.LEFT, padx=30)
+        
+        # Content frame (scrollable if needed)
+        content_frame = tk.Frame(self.config_page_frame, bg=Theme.BACKGROUND)
+        content_frame.pack(fill=tk.BOTH, expand=True, padx=40, pady=30)
+        
+        # Create keyboard for config page
+        config_keyboard = OnScreenKeyboard(self.config_page_frame)
+        
+        # Host entry section
+        host_label = tk.Label(
+            content_frame,
             text="Grocy Host (e.g., https://grocy.example.com):",
             font=Theme.get_config_font(),
             bg=Theme.BACKGROUND,
             fg=Theme.TEXT_PRIMARY
-        ).pack(pady=10)
+        )
+        host_label.pack(pady=(0, 10), anchor='w')
         
-        host_entry_frame = tk.Frame(dialog, bg=Theme.BACKGROUND)
-        host_entry_frame.pack(pady=5)
+        host_entry_frame = tk.Frame(content_frame, bg=Theme.BACKGROUND)
+        host_entry_frame.pack(fill=tk.X, pady=(0, 20))
         
-        host_entry = tk.Entry(host_entry_frame, font=Theme.get_config_font(), width=50, 
-                             bg=Theme.BUTTON_CONFIG, fg='white', insertbackground='white')
-        host_entry.pack(side=tk.LEFT, padx=5)
+        host_entry = tk.Entry(
+            host_entry_frame, 
+            font=Theme.get_config_font(), 
+            bg=Theme.BUTTON_CONFIG, 
+            fg='white', 
+            insertbackground='white'
+        )
+        host_entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         if self.config.host:
             host_entry.insert(0, self.config.host)
         
         # Keyboard button for host entry
-        host_keyboard_btn = tk.Label(
-            host_entry_frame,
-            text="⌨️",
-            font=('Arial', 16),
-            bg=Theme.BUTTON_ADD,
-            fg='white',
-            cursor='hand2',
-            width=3
-        )
-        host_keyboard_btn.pack(side=tk.LEFT, padx=5)
-        host_keyboard_btn.bind('<Button-1>', lambda e: dialog_keyboard.show(host_entry))
+        icon_loader = get_icon_loader()
+        keyboard_icon_img = icon_loader.load_icon('keyboard', size=(24, 24), color='white')
+        if keyboard_icon_img:
+            host_keyboard_btn = tk.Label(
+                host_entry_frame,
+                image=keyboard_icon_img,
+                bg=Theme.BUTTON_ADD,
+                cursor='hand2'
+            )
+            host_keyboard_btn.image = keyboard_icon_img  # Keep reference
+        else:
+            host_keyboard_btn = tk.Label(
+                host_entry_frame,
+                text="KB",
+                font=Theme.get_config_font(),
+                bg=Theme.BUTTON_ADD,
+                fg='white',
+                cursor='hand2'
+            )
+        host_keyboard_btn.pack(side=tk.LEFT, padx=10)
+        host_keyboard_btn.bind('<Button-1>', lambda e: config_keyboard.show(host_entry))
         
-        # API key entry
-        tk.Label(
-            dialog,
+        # API key entry section
+        api_key_label = tk.Label(
+            content_frame,
             text="API Key:",
             font=Theme.get_config_font(),
             bg=Theme.BACKGROUND,
             fg=Theme.TEXT_PRIMARY
-        ).pack(pady=10)
+        )
+        api_key_label.pack(pady=(0, 10), anchor='w')
         
-        api_key_entry_frame = tk.Frame(dialog, bg=Theme.BACKGROUND)
-        api_key_entry_frame.pack(pady=5)
+        api_key_entry_frame = tk.Frame(content_frame, bg=Theme.BACKGROUND)
+        api_key_entry_frame.pack(fill=tk.X, pady=(0, 30))
         
-        api_key_entry = tk.Entry(api_key_entry_frame, font=Theme.get_config_font(), width=50, 
-                                 show='*', bg=Theme.BUTTON_CONFIG, fg='white', insertbackground='white')
-        api_key_entry.pack(side=tk.LEFT, padx=5)
+        api_key_entry = tk.Entry(
+            api_key_entry_frame, 
+            font=Theme.get_config_font(), 
+            show='*',
+            bg=Theme.BUTTON_CONFIG, 
+            fg='white', 
+            insertbackground='white'
+        )
+        api_key_entry.pack(side=tk.LEFT, padx=5, fill=tk.X, expand=True)
         if self.config.api_key:
             api_key_entry.insert(0, self.config.api_key)
         
         # Keyboard button for API key entry
-        api_keyboard_btn = tk.Label(
-            api_key_entry_frame,
-            text="⌨️",
-            font=('Arial', 16),
-            bg=Theme.BUTTON_ADD,
-            fg='white',
-            cursor='hand2',
-            width=3
+        icon_loader = get_icon_loader()
+        keyboard_icon_img = icon_loader.load_icon('keyboard', size=(24, 24), color='white')
+        if keyboard_icon_img:
+            api_keyboard_btn = tk.Label(
+                api_key_entry_frame,
+                image=keyboard_icon_img,
+                bg=Theme.BUTTON_ADD,
+                cursor='hand2'
+            )
+            api_keyboard_btn.image = keyboard_icon_img  # Keep reference
+        else:
+            api_keyboard_btn = tk.Label(
+                api_key_entry_frame,
+                text="KB",
+                font=Theme.get_config_font(),
+                bg=Theme.BUTTON_ADD,
+                fg='white',
+                cursor='hand2'
+            )
+        api_keyboard_btn.pack(side=tk.LEFT, padx=10)
+        api_keyboard_btn.bind('<Button-1>', lambda e: config_keyboard.show(api_key_entry))
+        
+        # Status label for feedback
+        status_label = tk.Label(
+            content_frame,
+            text="",
+            font=Theme.get_config_font(),
+            bg=Theme.BACKGROUND,
+            fg=Theme.STATUS_SUCCESS
         )
-        api_keyboard_btn.pack(side=tk.LEFT, padx=5)
-        api_keyboard_btn.bind('<Button-1>', lambda e: dialog_keyboard.show(api_key_entry))
+        status_label.pack(pady=10)
         
         def save_config():
             host = host_entry.get().strip()
             api_key = api_key_entry.get().strip()
             
             if not host or not api_key:
-                messagebox.showerror("Error", "Please fill in all fields.")
+                status_label.config(text="Please fill in all fields.", fg=Theme.STATUS_ERROR)
                 return
             
             if self.config.save(host, api_key):
                 self.grocy_api = GrocyAPI(self.config)
                 if self.grocy_api.test_connection():
-                    messagebox.showinfo("Success", "Configuration saved and connection tested!")
-                    dialog.destroy()
+                    status_label.config(text="SUCCESS: Configuration saved and connection tested!", fg=Theme.STATUS_SUCCESS)
+                    # Return to main page after a short delay
+                    self.root.after(1500, self._setup_main_page)
                 else:
-                    messagebox.showerror("Connection Error", 
-                                       "Could not connect to Grocy. Please check your settings.")
+                    status_label.config(text="ERROR: Could not connect to Grocy. Please check your settings.", fg=Theme.STATUS_ERROR)
             else:
-                messagebox.showerror("Error", "Failed to save configuration.")
+                status_label.config(text="ERROR: Failed to save configuration.", fg=Theme.STATUS_ERROR)
         
-        # Save button - same dark style as other buttons
-        save_button_frame = tk.Frame(dialog, bg=Theme.BACKGROUND)
+        # Save button
+        save_button_frame = tk.Frame(content_frame, bg=Theme.BACKGROUND)
+        save_button_frame.pack(pady=20)
+        
         save_bg_frame = tk.Frame(save_button_frame, bg=Theme.BUTTON_SAVE, cursor='hand2')
         save_button = tk.Label(
             save_bg_frame,
-            text="SAVE",
+            text="SAVE CONFIGURATION",
             font=Theme.get_config_button_font(),
             bg=Theme.BUTTON_SAVE,
             fg='white',
             cursor='hand2'
         )
-        save_button.pack(fill=tk.BOTH, expand=True, padx=20, pady=10)
+        save_button.pack(fill=tk.BOTH, expand=True, padx=30, pady=15)
         save_bg_frame.pack()
         
         # Bind click events
@@ -678,8 +815,6 @@ class GrocyScannerUI:
         save_button.bind('<Leave>', save_leave)
         save_bg_frame.bind('<Enter>', save_enter)
         save_bg_frame.bind('<Leave>', save_leave)
-        
-        save_button_frame.pack(pady=20)
     
     def process_barcode(self, barcode: str):
         """Process a scanned barcode."""
@@ -801,7 +936,7 @@ class GrocyScannerUI:
     
     def _show_success(self, product_name: str, image_url: Optional[str], stock_amount: float, product_id: Optional[int] = None):
         """Show success message with product info."""
-        self.status_label.config(text="✓ SUCCESS", fg=Theme.STATUS_SUCCESS, font=Theme.get_status_large_font())
+        self.status_label.config(text="SUCCESS", fg=Theme.STATUS_SUCCESS, font=Theme.get_status_large_font())
         self.info_label.config(
             text=f"PRODUCT: {product_name.upper()}\nNEW STOCK: {stock_amount}",
             fg=Theme.STATUS_SUCCESS,
@@ -948,7 +1083,7 @@ class GrocyScannerUI:
     
     def _show_search_result(self, product_name: str, image_url: Optional[str], stock_amount: float, product_id: int):
         """Show search result."""
-        self.status_label.config(text="✓ PRODUCT FOUND", fg=Theme.STATUS_SUCCESS, font=Theme.get_status_large_font())
+        self.status_label.config(text="PRODUCT FOUND", fg=Theme.STATUS_SUCCESS, font=Theme.get_status_large_font())
         self.info_label.config(
             text=f"PRODUCT: {product_name.upper()}\nSTOCK: {stock_amount}",
             fg=Theme.STATUS_SUCCESS,
@@ -1005,7 +1140,7 @@ class GrocyScannerUI:
     
     def _show_error(self, message: str):
         """Show error message."""
-        self.status_label.config(text="✗ FAILED", fg=Theme.STATUS_ERROR, font=Theme.get_status_large_font())
+        self.status_label.config(text="FAILED", fg=Theme.STATUS_ERROR, font=Theme.get_status_large_font())
         self.info_label.config(text=message.upper(), fg=Theme.STATUS_ERROR, font=Theme.get_info_font())
         self.image_label.config(image='')
         
@@ -1096,7 +1231,7 @@ class GrocyScannerUI:
     
     def _show_search_result(self, product_name: str, image_url: Optional[str], stock_amount: float, product_id: int):
         """Show search result."""
-        self.status_label.config(text="✓ PRODUCT FOUND", fg=Theme.STATUS_SUCCESS, font=Theme.get_status_large_font())
+        self.status_label.config(text="PRODUCT FOUND", fg=Theme.STATUS_SUCCESS, font=Theme.get_status_large_font())
         self.info_label.config(
             text=f"PRODUCT: {product_name.upper()}\nSTOCK: {stock_amount}",
             fg=Theme.STATUS_SUCCESS,
@@ -1174,26 +1309,42 @@ class GrocyScannerUI:
         
         # Back button
         back_frame = tk.Frame(header_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
+        icon_loader = get_icon_loader()
+        back_icon_img = icon_loader.load_icon('arrow_left', size=(18, 18), color='white')
+        if back_icon_img:
+            back_icon_label = tk.Label(
+                back_frame,
+                image=back_icon_img,
+                bg=Theme.BUTTON_CONFIG,
+                cursor='hand2'
+            )
+            back_icon_label.image = back_icon_img  # Keep reference
+            back_icon_label.pack(side=tk.LEFT, padx=(8, 3), pady=5)
         back_label = tk.Label(
             back_frame,
-            text="← BACK",
+            text="BACK",
             font=Theme.get_config_font(),
             bg=Theme.BUTTON_CONFIG,
             fg='white',
             cursor='hand2'
         )
-        back_label.pack(padx=10, pady=5)
+        back_label.pack(side=tk.LEFT, padx=(0, 5), pady=5)
         back_frame.pack(side=tk.LEFT)
         back_label.bind('<Button-1>', lambda e: self._setup_main_page())
         back_frame.bind('<Button-1>', lambda e: self._setup_main_page())
+        if back_icon_img:
+            back_icon_label.bind('<Button-1>', lambda e: self._setup_main_page())
         
         # Hover effect for back button
-        def back_enter(e): back_frame.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#2d2d2d')); back_label.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#2d2d2d'))
-        def back_leave(e): back_frame.config(bg=Theme.BUTTON_CONFIG); back_label.config(bg=Theme.BUTTON_CONFIG)
+        def back_enter(e): back_frame.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#2d2d2d')); back_label.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#2d2d2d')); (back_icon_label.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#2d2d2d')) if back_icon_img else None)
+        def back_leave(e): back_frame.config(bg=Theme.BUTTON_CONFIG); back_label.config(bg=Theme.BUTTON_CONFIG); (back_icon_label.config(bg=Theme.BUTTON_CONFIG) if back_icon_img else None)
         back_label.bind('<Enter>', back_enter)
         back_label.bind('<Leave>', back_leave)
         back_frame.bind('<Enter>', back_enter)
         back_frame.bind('<Leave>', back_leave)
+        if back_icon_img:
+            back_icon_label.bind('<Enter>', back_enter)
+            back_icon_label.bind('<Leave>', back_leave)
         
         # Title
         title_label = tk.Label(
@@ -1824,26 +1975,42 @@ class GrocyScannerUI:
         
         # Back button
         back_frame = tk.Frame(header_frame, bg=Theme.BUTTON_CONFIG, cursor='hand2')
+        icon_loader = get_icon_loader()
+        back_icon_img = icon_loader.load_icon('arrow_left', size=(18, 18), color='white')
+        if back_icon_img:
+            back_icon_label = tk.Label(
+                back_frame,
+                image=back_icon_img,
+                bg=Theme.BUTTON_CONFIG,
+                cursor='hand2'
+            )
+            back_icon_label.image = back_icon_img  # Keep reference
+            back_icon_label.pack(side=tk.LEFT, padx=(8, 3), pady=5)
         back_label = tk.Label(
             back_frame,
-            text="← BACK",
+            text="BACK",
             font=Theme.get_config_font(),
             bg=Theme.BUTTON_CONFIG,
             fg='white',
             cursor='hand2'
         )
-        back_label.pack(padx=10, pady=5)
+        back_label.pack(side=tk.LEFT, padx=(0, 5), pady=5)
         back_frame.pack(side=tk.LEFT)
         back_label.bind('<Button-1>', lambda e: self._show_search_page())
         back_frame.bind('<Button-1>', lambda e: self._show_search_page())
+        if back_icon_img:
+            back_icon_label.bind('<Button-1>', lambda e: self._show_search_page())
         
         # Hover effect for back button
-        def back_enter(e): back_frame.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#2d2d2d')); back_label.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#2d2d2d'))
-        def back_leave(e): back_frame.config(bg=Theme.BUTTON_CONFIG); back_label.config(bg=Theme.BUTTON_CONFIG)
+        def back_enter(e): back_frame.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#2d2d2d')); back_label.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#2d2d2d')); (back_icon_label.config(bg=getattr(Theme, 'BUTTON_CONFIG_HOVER', '#2d2d2d')) if back_icon_img else None)
+        def back_leave(e): back_frame.config(bg=Theme.BUTTON_CONFIG); back_label.config(bg=Theme.BUTTON_CONFIG); (back_icon_label.config(bg=Theme.BUTTON_CONFIG) if back_icon_img else None)
         back_label.bind('<Enter>', back_enter)
         back_label.bind('<Leave>', back_leave)
         back_frame.bind('<Enter>', back_enter)
         back_frame.bind('<Leave>', back_leave)
+        if back_icon_img:
+            back_icon_label.bind('<Enter>', back_enter)
+            back_icon_label.bind('<Leave>', back_leave)
         
         # Content frame
         content_frame = tk.Frame(self.product_detail_frame, bg=Theme.BACKGROUND)
@@ -2025,7 +2192,7 @@ class GrocyScannerUI:
         success_frame = tk.Frame(self.product_detail_frame, bg=Theme.STATUS_SUCCESS, relief=tk.RAISED, borderwidth=2)
         success_label = tk.Label(
             success_frame,
-            text=f"✓ {action.upper()} SUCCESSFUL\nNEW STOCK: {stock_amount}",
+            text=f"{action.upper()} SUCCESSFUL\nNEW STOCK: {stock_amount}",
             font=Theme.get_status_font(),
             bg=Theme.STATUS_SUCCESS,
             fg='white',
@@ -2045,7 +2212,7 @@ class GrocyScannerUI:
         error_frame = tk.Frame(self.product_detail_frame, bg=Theme.STATUS_ERROR, relief=tk.RAISED, borderwidth=2)
         error_label = tk.Label(
             error_frame,
-            text=f"✗ {message.upper()}",
+            text=f"ERROR: {message.upper()}",
             font=Theme.get_status_font(),
             bg=Theme.STATUS_ERROR,
             fg='white',

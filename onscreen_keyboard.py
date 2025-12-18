@@ -2,6 +2,7 @@
 import tkinter as tk
 from typing import Callable, Optional
 from theme import Theme
+from icon_loader import get_icon_loader
 
 
 class OnScreenKeyboard:
@@ -37,12 +38,12 @@ class OnScreenKeyboard:
         
         # Keyboard layout
         rows = [
-            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '⌫'],
+            ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'BACKSPACE'],
             ['q', 'w', 'e', 'r', 't', 'y', 'u', 'i', 'o', 'p'],
             ['a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l'],
-            ['⇧', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '.', '-', '_'],
+            ['SHIFT', 'z', 'x', 'c', 'v', 'b', 'n', 'm', '.', '-', '_'],
             [':', '/', '?', '&', '=', '@', '#', '%', '+'],
-            ['Space', 'Enter', '⌫']
+            ['Space', 'Enter', 'BACKSPACE']
         ]
         
         # Use dark gray/black background for all keys (like other buttons)
@@ -74,7 +75,7 @@ class OnScreenKeyboard:
                 elif key == 'Enter':
                     key_label = tk.Label(
                         key_frame,
-                        text='✓ Enter',
+                        text='Enter',
                         bg=KEY_BG,
                         fg=KEY_FG,
                         font=Theme.get_config_font(),
@@ -85,31 +86,55 @@ class OnScreenKeyboard:
                     key_label.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
                     key_label.bind('<Button-1>', lambda e: self._on_enter())
                     key_frame.bind('<Button-1>', lambda e: self._on_enter())
-                elif key == '⇧':
-                    key_label = tk.Label(
-                        key_frame,
-                        text='⇧',
-                        bg=KEY_BG,
-                        fg=KEY_FG,
-                        font=Theme.get_config_font(),
-                        cursor='hand2',
-                        width=5,
-                        height=2
-                    )
+                elif key == 'SHIFT':
+                    icon_loader = get_icon_loader()
+                    shift_icon = icon_loader.load_icon('shift', size=(16, 16), color='white')
+                    if shift_icon:
+                        key_label = tk.Label(
+                            key_frame,
+                            image=shift_icon,
+                            bg=KEY_BG,
+                            fg=KEY_FG,
+                            cursor='hand2'
+                        )
+                        key_label.image = shift_icon  # Keep reference
+                    else:
+                        key_label = tk.Label(
+                            key_frame,
+                            text='SHIFT',
+                            bg=KEY_BG,
+                            fg=KEY_FG,
+                            font=Theme.get_config_font(),
+                            cursor='hand2',
+                            width=5,
+                            height=2
+                        )
                     key_label.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
                     key_label.bind('<Button-1>', lambda e: self._toggle_shift())
                     key_frame.bind('<Button-1>', lambda e: self._toggle_shift())
-                elif key == '⌫':
-                    key_label = tk.Label(
-                        key_frame,
-                        text='⌫',
-                        bg=KEY_BG,
-                        fg=KEY_FG,
-                        font=Theme.get_config_font(),
-                        cursor='hand2',
-                        width=5,
-                        height=2
-                    )
+                elif key == 'BACKSPACE':
+                    icon_loader = get_icon_loader()
+                    backspace_icon = icon_loader.load_icon('backspace', size=(16, 16), color='white')
+                    if backspace_icon:
+                        key_label = tk.Label(
+                            key_frame,
+                            image=backspace_icon,
+                            bg=KEY_BG,
+                            fg=KEY_FG,
+                            cursor='hand2'
+                        )
+                        key_label.image = backspace_icon  # Keep reference
+                    else:
+                        key_label = tk.Label(
+                            key_frame,
+                            text='DEL',
+                            bg=KEY_BG,
+                            fg=KEY_FG,
+                            font=Theme.get_config_font(),
+                            cursor='hand2',
+                            width=5,
+                            height=2
+                        )
                     key_label.pack(fill=tk.BOTH, expand=True, padx=2, pady=2)
                     key_label.bind('<Button-1>', lambda e: self._backspace())
                     key_frame.bind('<Button-1>', lambda e: self._backspace())

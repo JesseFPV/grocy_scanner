@@ -8,7 +8,7 @@ A Raspberry Pi-based barcode scanner interface for Grocy inventory management. T
 - **Three Actions**: Add to stock, open product, or deduct from stock with a single tap
 - **Visual Feedback**: Shows product name, image, and updated stock quantity on success
 - **Error Handling**: Clear error messages when barcodes are not found
-- **Easy Configuration**: First-run setup dialog for Grocy host and API key
+- **Easy Configuration**: Full-screen configuration page for Grocy host and API key
 - **USB Barcode Scanner Support**: Works with any USB barcode scanner that emulates keyboard input
 - **Customizable UI**: Easy theme customization via `theme.py` - change colors, fonts, and sizes
 
@@ -140,7 +140,7 @@ export DISPLAY=:0
 python main.py
 ```
 
-The application should start and show the configuration dialog. Press `Escape` to exit.
+The application should start and show the configuration page. Press `Escape` to exit fullscreen.
 
 **Troubleshooting:**
 - If you get "no display name and no $DISPLAY", make sure you've set `export DISPLAY=:0`
@@ -371,7 +371,7 @@ sudo systemctl disable intake.service
 ### Keyboard Shortcuts
 
 - `Escape`: Exit fullscreen mode
-- `⚙️ Config` button: Access configuration dialog
+- `⚙️ Config` button: Access configuration page (full-screen view)
 
 ## USB Barcode Scanner Setup
 
